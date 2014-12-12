@@ -1,7 +1,12 @@
 package org.saliya.dsctools.whitendata;
 
 import com.google.common.base.Optional;
+import mpi.MPIException;
 import org.apache.commons.cli.*;
+
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.DoubleSummaryStatistics;
 
 
 public class Program {
@@ -35,7 +40,14 @@ public class Program {
         int numVec = Integer.parseInt(cmd.getOptionValue(Constants.CMD_OPTION_SHORT_N));
         int vecLen = Integer.parseInt(cmd.getOptionValue(Constants.CMD_OPTION_SHORT_L));
 
-
+        ParallelOptions pops = new ParallelOptions(args, numVec);
+        try {
+            double[][] columnVectors = FileUtils.readVectorsInColumnOrder(dataFile, pops.myNumVec, vecLen, pops.globalVecStartIdx);
+            Object[] summaries = Arrays.stream(columnVectors).parallel().map(c -> Arrays.stream(c).parallel().summaryStatistics()).toArray();
+            ((DoubleSummaryStatistics)summaries[0]).
+        } catch (IOException e) {
+            throw new RuntimeException("IO Exception occurred ", e);
+        }
     }
 
     /**

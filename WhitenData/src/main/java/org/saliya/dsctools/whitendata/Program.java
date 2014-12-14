@@ -1,11 +1,15 @@
 package org.saliya.dsctools.whitendata;
 
-import com.google.common.base.Optional;
+import com.google.common.io.Files;
 import mpi.MPIException;
 import org.apache.commons.cli.*;
 
 import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.Optional;
+import java.util.stream.IntStream;
 
 
 public class Program {
@@ -19,7 +23,7 @@ public class Program {
                                  Constants.CMD_OPTION_DESCRIPTION_L);
     }
     public static void main(String[] args) {
-        Optional<org.apache.commons.cli.CommandLine>
+        Optional<CommandLine>
                 parserResult = parseCommandLineArguments(args, programOptions);
         if (!parserResult.isPresent()){
             System.out.println(Constants.ERR_PROGRAM_ARGUMENTS_PARSING_FAILED);
@@ -44,15 +48,36 @@ public class Program {
         try {
             double[][] columnVectors = FileUtils.readVectorsInColumnOrder(dataFile, pOps.myNumVec, vecLen, pOps.globalVecStartIdx);
 
-            ComponentStatistics[] summaries = Arrays.stream(columnVectors).parallel().map(c -> Arrays.stream(c).parallel().collect(ComponentStatistics::new, ComponentStatistics::accept, ComponentStatistics::combine)).toArray(ComponentStatistics[]::new);
-            mpiOps.Allreduce(summaries);
-            if (pOps.rank == 0){
-                System.out.println();
-                Arrays.stream(summaries).map(
-                        s -> s.getAverage() + "\t" + s.getStandardDeviation() + System.lineSeparator()).forEach(
-                        System.out::print);
-            }
+            ComponentStatistics[] summaries = Arrays.stream(columnVectors).parallel()
+                                                    .map(c -> Arrays.stream(c).parallel()
+                                                                    .collect(ComponentStatistics::new,
+                                                                             ComponentStatistics::accept,
+                                                                             ComponentStatistics::combine))
+                                                    .toArray(ComponentStatistics[]::new);
+            mpiOps.allReduce(summaries);
 
+            // Whiten data
+            IntStream.range(0, vecLen).parallel().forEach(i ->{
+                double average = summaries[i].getAverage();
+                double stdDev = summaries[i].getStandardDeviation();
+                IntStream.range(0,pOps.myNumVec).parallel().forEach(j->columnVectors[i][j] = (columnVectors[j][i] - average)/stdDev);
+            });
+
+            Path path = Paths.get(dataFile);
+            Optional<Path> parent = Optional.ofNullable(path.getParent());
+            String name = "whiten_" + Files.getNameWithoutExtension(dataFile) + ".txt";
+            Path whitenDataFile = parent.isPresent() ? parent.get().resolve(name) : Paths.get(name);
+
+            if (pOps.rank == 0){
+                FileUtils.writeVectorsToFile(whitenDataFile, columnVectors, pOps.myNumVec, vecLen);
+                mpiOps.notify(pOps.rank + 1);
+                mpiOps.receive(pOps.size - 1);
+                System.out.println("Done.");
+            } else {
+                mpiOps.receive(pOps.rank - 1);
+                FileUtils.writeVectorsToFile(whitenDataFile, columnVectors, pOps.myNumVec, vecLen);
+                mpiOps.notify((pOps.rank+1)%pOps.size);
+            }
             pOps.endParallelism();
         } catch (IOException e) {
             throw new RuntimeException("IO Exception occurred ", e);
@@ -63,22 +88,23 @@ public class Program {
 
 
 
+
+
     /**
      * Parse command line arguments
      * @param args Command line arguments
      * @param opts Command line options
      * @return An <code>Optional&lt;CommandLine&gt;</code> object
      */
-    private static com.google.common.base.Optional<org.apache.commons.cli.CommandLine> parseCommandLineArguments(String [] args, Options opts){
+    private static Optional<CommandLine> parseCommandLineArguments(String [] args, Options opts){
 
         CommandLineParser optParser = new GnuParser();
 
         try {
-            return com.google.common.base.Optional.fromNullable(optParser.parse(opts, args));
+            return Optional.ofNullable(optParser.parse(opts, args));
         } catch (ParseException e) {
-            System.out.println(e);
+            throw new RuntimeException("Command line parsing failed ", e);
         }
-        return com.google.common.base.Optional.fromNullable(null);
     }
 
 

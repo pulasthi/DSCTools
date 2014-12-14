@@ -1,11 +1,13 @@
 package org.saliya.dsctools.whitendata;
 
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.charset.Charset;
-import java.nio.file.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.Optional;
 import java.util.regex.Pattern;
 import java.util.stream.IntStream;
@@ -34,8 +36,9 @@ public class FileUtils {
     }
 
     public static void writeVectorsToFile(Path path, double[][] columnVectors, int numVec, int vecLen) throws IOException {
+        StandardOpenOption op = Files.exists(path) ? StandardOpenOption.APPEND : StandardOpenOption.CREATE;
         try(PrintWriter writer = new PrintWriter(Files.newBufferedWriter(path, Charset.defaultCharset(),
-                                                                         StandardOpenOption.APPEND))){
+                                                                         op))){
             for (int r = 0; r < numVec; ++r){
                 for (int c=0; c < vecLen; ++c){
                     writer.print(columnVectors[c][r] + "\t");

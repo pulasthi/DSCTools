@@ -60,7 +60,7 @@ public class Program {
             IntStream.range(0, vecLen).parallel().forEach(i ->{
                 double average = summaries[i].getAverage();
                 double stdDev = summaries[i].getStandardDeviation();
-                IntStream.range(0,pOps.myNumVec).parallel().forEach(j->columnVectors[i][j] = (columnVectors[j][i] - average)/stdDev);
+                IntStream.range(0,pOps.myNumVec).parallel().forEach(j->columnVectors[i][j] = (columnVectors[i][j] - average)/stdDev);
             });
 
             Path path = Paths.get(dataFile);

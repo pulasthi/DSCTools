@@ -9,9 +9,9 @@ import static edu.rice.hj.Module0.finalizeHabanero;
 import static edu.rice.hj.Module0.initializeHabanero;
 
 public class ParallelOptions {
-    int mpiRank;
-    int mpiSize;
-    Intracomm mpiWorld;
+    int rank = 0;
+    int size = 1;
+    Intracomm comm;
 
     int myNumVec;
     int globalVecStartIdx;
@@ -23,14 +23,16 @@ public class ParallelOptions {
         // Set up MPI
         try {
             MPI.Init(args);
-            mpiWorld = MPI.COMM_WORLD;
-            mpiRank = mpiWorld.getRank();
-            mpiSize = mpiWorld.getSize();
+            comm = MPI.COMM_WORLD;
+            rank = comm.getRank();
+            size = comm.getSize();
         } catch (MPIException e) {
             throw new RuntimeException(e);
         }
         decomposeDomain(numVec);
     }
+
+
 
     public void endParallelism() throws MPIException {
         finalizeHabanero();
@@ -38,9 +40,9 @@ public class ParallelOptions {
     }
 
     private void decomposeDomain(int numVec){
-        int div = numVec / mpiSize;
-        int rem = numVec % mpiSize;
-        myNumVec = mpiRank < rem ? div+1 : div;
-        globalVecStartIdx = mpiRank*div + (mpiRank < rem ? mpiRank : rem);
+        int div = numVec / size;
+        int rem = numVec % size;
+        myNumVec = rank < rem ? div+1 : div;
+        globalVecStartIdx = rank *div + (rank < rem ? rank : rem);
     }
 }

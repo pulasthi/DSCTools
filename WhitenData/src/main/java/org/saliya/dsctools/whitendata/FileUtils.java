@@ -19,14 +19,14 @@ public class FileUtils {
             Pattern pattern = Pattern.compile("[\t]");
             Optional<String> line;
             int idx = 0;
-            while ((line = Optional.of(reader.readLine())).isPresent() && idx < globalStartIdx+myNumVec){
+            while ((line = Optional.ofNullable(reader.readLine())).isPresent() && idx < globalStartIdx+myNumVec){
                 if (idx < globalStartIdx) {++idx;continue;}
                 String [] splits = pattern.split(line.get().trim());
                 if (splits.length != vecLen){
                     throw new RuntimeException("Vector length for line " + idx + " mismatch with given vector length " + vecLen);
                 }
                 final int idxTmp = idx;
-                IntStream.range(0,vecLen).parallel().forEach(i->columnVectors[i][idxTmp] = Double.parseDouble(splits[i]));
+                IntStream.range(0,vecLen).parallel().forEach(i->columnVectors[i][idxTmp-globalStartIdx] = Double.parseDouble(splits[i]));
                 ++idx;
             }
         }

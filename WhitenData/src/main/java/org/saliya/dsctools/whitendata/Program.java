@@ -6,7 +6,6 @@ import org.apache.commons.cli.*;
 
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.DoubleSummaryStatistics;
 
 
 public class Program {
@@ -29,26 +28,40 @@ public class Program {
         }
 
         CommandLine cmd = parserResult.get();
-        if (!(cmd.hasOption(Constants.CMD_OPTION_LONG_F) && cmd.hasOption(Constants.CMD_OPTION_SHORT_N) &&
+        if (!(cmd.hasOption(Constants.CMD_OPTION_SHORT_F) && cmd.hasOption(Constants.CMD_OPTION_SHORT_N) &&
                 cmd.hasOption(Constants.CMD_OPTION_SHORT_L))) {
             System.out.println(Constants.ERR_INVALID_PROGRAM_ARGUMENTS);
             new HelpFormatter().printHelp(Constants.PROGRAM_NAME, programOptions);
             return;
         }
 
-        String dataFile = cmd.getOptionValue(Constants.CMD_OPTION_LONG_F);
+        String dataFile = cmd.getOptionValue(Constants.CMD_OPTION_SHORT_F);
         int numVec = Integer.parseInt(cmd.getOptionValue(Constants.CMD_OPTION_SHORT_N));
         int vecLen = Integer.parseInt(cmd.getOptionValue(Constants.CMD_OPTION_SHORT_L));
 
-        ParallelOptions pops = new ParallelOptions(args, numVec);
+        ParallelOptions pOps = new ParallelOptions(args, numVec);
+        MpiOps mpiOps = new MpiOps(numVec, vecLen, pOps);
         try {
-            double[][] columnVectors = FileUtils.readVectorsInColumnOrder(dataFile, pops.myNumVec, vecLen, pops.globalVecStartIdx);
-            Object[] summaries = Arrays.stream(columnVectors).parallel().map(c -> Arrays.stream(c).parallel().summaryStatistics()).toArray();
-            ((DoubleSummaryStatistics)summaries[0]).
+            double[][] columnVectors = FileUtils.readVectorsInColumnOrder(dataFile, pOps.myNumVec, vecLen, pOps.globalVecStartIdx);
+
+            ComponentStatistics[] summaries = Arrays.stream(columnVectors).parallel().map(c -> Arrays.stream(c).parallel().collect(ComponentStatistics::new, ComponentStatistics::accept, ComponentStatistics::combine)).toArray(ComponentStatistics[]::new);
+            mpiOps.Allreduce(summaries);
+            if (pOps.rank == 0){
+                System.out.println();
+                Arrays.stream(summaries).map(
+                        s -> s.getAverage() + "\t" + s.getStandardDeviation() + System.lineSeparator()).forEach(
+                        System.out::print);
+            }
+
+            pOps.endParallelism();
         } catch (IOException e) {
             throw new RuntimeException("IO Exception occurred ", e);
+        } catch (MPIException e) {
+            throw new RuntimeException("MPI Error occurred", e);
         }
     }
+
+
 
     /**
      * Parse command line arguments
@@ -66,5 +79,13 @@ public class Program {
             System.out.println(e);
         }
         return com.google.common.base.Optional.fromNullable(null);
+    }
+
+
+    private static void print2DArray(double[][] vectors) {
+        Arrays.stream(vectors).forEach(v -> {
+            Arrays.stream(v).forEach(c -> System.out.print(c + "\t"));
+            System.out.println();
+        });
     }
 }

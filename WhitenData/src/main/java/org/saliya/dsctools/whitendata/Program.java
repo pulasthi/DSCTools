@@ -32,6 +32,7 @@ public class Program {
                                  Constants.CMD_OPTION_DESCRIPTION_I);
     }
     public static void main(String[] args) {
+        Stopwatch mainTimer = Stopwatch.createStarted();
         Optional<CommandLine>
                 parserResult = parseCommandLineArguments(args, programOptions);
         if (!parserResult.isPresent()){
@@ -101,7 +102,7 @@ public class Program {
             timer.reset();
             print("  Done. Whitening data took " + (sumOfElapsedTimes * 0.0001 / pOps.size) + " seconds", pOps);
 
-            print(" Writing whitened vectors to file ...", pOps);
+            print("  Writing whitened vectors to file ...", pOps);
             timer.start();
             Path path = Paths.get(dataFile);
             Optional<Path> parent = Optional.ofNullable(path.getParent());
@@ -124,7 +125,8 @@ public class Program {
             timer.reset();
             print("  Done. Writing whitened vectors took " + (sumOfElapsedTimes * 0.0001 / pOps.size) + " seconds", pOps);
 
-            print("=== Program terminated successfully on " + dateFormat.format(new Date())  +" ===", pOps);
+            mainTimer.stop();
+            print("=== Program terminated successfully on " + dateFormat.format(new Date())  +" running for" + (mainTimer.elapsed(TimeUnit.MILLISECONDS) * 0.0001)  + " seconds ===", pOps);
             pOps.endParallelism();
         } catch (IOException e) {
             throw new RuntimeException("IO Exception occurred ", e);

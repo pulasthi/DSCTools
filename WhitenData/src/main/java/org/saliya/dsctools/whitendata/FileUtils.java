@@ -20,7 +20,7 @@ public class FileUtils {
         try (BufferedReader reader = Files.newBufferedReader(path, Charset.defaultCharset())) {
             if (ignoreFirsRow) reader.readLine();
             int shift = ignoreFirsColumn ? 1 : 0;
-            Pattern pattern = Pattern.compile("[\t]");
+            Pattern pattern = Pattern.compile("[\t,]");
             Optional<String> line;
             int idx = 0;
             while ((line = Optional.ofNullable(reader.readLine())).isPresent() && idx < globalStartIdx+myNumVec){

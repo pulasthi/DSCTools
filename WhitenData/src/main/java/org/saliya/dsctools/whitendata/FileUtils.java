@@ -27,7 +27,7 @@ public class FileUtils {
                 if (idx < globalStartIdx) {++idx;continue;}
                 String [] splits = pattern.split(line.get().trim());
                 if (splits.length - shift != vecLen){
-                    throw new RuntimeException("Vector length for line " + idx + " mismatch with given vector length " + vecLen);
+                    throw new RuntimeException("Vector length ("  + (splits.length -shift) + ") for line " + idx + " mismatch with given vector length " + vecLen);
                 }
                 final int idxTmp = idx;
                 IntStream.range(0,vecLen).parallel().forEach(i->columnVectors[i][idxTmp-globalStartIdx] = Double.parseDouble(splits[i+shift]));

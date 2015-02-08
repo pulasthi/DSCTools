@@ -26,7 +26,7 @@ public class FileUtils {
             while ((line = Optional.ofNullable(reader.readLine())).isPresent() && idx < globalStartIdx+myNumVec){
                 if (idx < globalStartIdx) {++idx;continue;}
                 String [] splits = pattern.split(line.get().trim());
-                if (splits.length != vecLen){
+                if (splits.length - shift != vecLen){
                     throw new RuntimeException("Vector length for line " + idx + " mismatch with given vector length " + vecLen);
                 }
                 final int idxTmp = idx;

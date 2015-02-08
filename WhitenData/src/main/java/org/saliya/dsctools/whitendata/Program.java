@@ -21,6 +21,8 @@ public class Program {
                                  Constants.CMD_OPTION_DESCRIPTION_N);
         programOptions.addOption(String.valueOf(Constants.CMD_OPTION_SHORT_L),Constants.CMD_OPTION_LONG_L, true,
                                  Constants.CMD_OPTION_DESCRIPTION_L);
+        programOptions.addOption(String.valueOf(Constants.CMD_OPTION_SHORT_I),Constants.CMD_OPTION_LONG_I, true,
+                                 Constants.CMD_OPTION_DESCRIPTION_I);
     }
     public static void main(String[] args) {
         Optional<CommandLine>
@@ -33,7 +35,7 @@ public class Program {
 
         CommandLine cmd = parserResult.get();
         if (!(cmd.hasOption(Constants.CMD_OPTION_SHORT_F) && cmd.hasOption(Constants.CMD_OPTION_SHORT_N) &&
-                cmd.hasOption(Constants.CMD_OPTION_SHORT_L))) {
+                cmd.hasOption(Constants.CMD_OPTION_SHORT_L) && cmd.hasOption(Constants.CMD_OPTION_SHORT_I))) {
             System.out.println(Constants.ERR_INVALID_PROGRAM_ARGUMENTS);
             new HelpFormatter().printHelp(Constants.PROGRAM_NAME, programOptions);
             return;
@@ -42,11 +44,12 @@ public class Program {
         String dataFile = cmd.getOptionValue(Constants.CMD_OPTION_SHORT_F);
         int numVec = Integer.parseInt(cmd.getOptionValue(Constants.CMD_OPTION_SHORT_N));
         int vecLen = Integer.parseInt(cmd.getOptionValue(Constants.CMD_OPTION_SHORT_L));
+        boolean ignore = Boolean.parseBoolean(cmd.getOptionValue(Constants.CMD_OPTION_SHORT_I));
 
         ParallelOptions pOps = new ParallelOptions(args, numVec);
         MpiOps mpiOps = new MpiOps(numVec, vecLen, pOps);
         try {
-            double[][] columnVectors = FileUtils.readVectorsInColumnOrder(dataFile, pOps.myNumVec, vecLen, pOps.globalVecStartIdx);
+            double[][] columnVectors = FileUtils.readVectorsInColumnOrder(dataFile, pOps.myNumVec, vecLen, pOps.globalVecStartIdx, ignore, ignore);
 
             ComponentStatistics[] summaries = Arrays.stream(columnVectors).parallel()
                                                     .map(c -> Arrays.stream(c).parallel()

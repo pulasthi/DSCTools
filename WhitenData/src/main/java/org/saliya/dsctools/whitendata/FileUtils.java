@@ -13,11 +13,13 @@ import java.util.regex.Pattern;
 import java.util.stream.IntStream;
 
 public class FileUtils {
-    public static double [][] readVectorsInColumnOrder(String file, int myNumVec, int vecLen, int globalStartIdx)
+    public static double [][] readVectorsInColumnOrder(String file, int myNumVec, int vecLen, int globalStartIdx, boolean ignoreFirsColumn, boolean ignoreFirsRow)
             throws IOException {
         double [][] columnVectors = new double[vecLen][myNumVec]; // column major storage of vectors
         Path path = Paths.get(file);
         try (BufferedReader reader = Files.newBufferedReader(path, Charset.defaultCharset())) {
+            if (ignoreFirsRow) reader.readLine();
+            int shift = ignoreFirsColumn ? 1 : 0;
             Pattern pattern = Pattern.compile("[\t]");
             Optional<String> line;
             int idx = 0;
@@ -28,7 +30,7 @@ public class FileUtils {
                     throw new RuntimeException("Vector length for line " + idx + " mismatch with given vector length " + vecLen);
                 }
                 final int idxTmp = idx;
-                IntStream.range(0,vecLen).parallel().forEach(i->columnVectors[i][idxTmp-globalStartIdx] = Double.parseDouble(splits[i]));
+                IntStream.range(0,vecLen).parallel().forEach(i->columnVectors[i][idxTmp-globalStartIdx] = Double.parseDouble(splits[i+shift]));
                 ++idx;
             }
         }

@@ -90,6 +90,7 @@ public class Program {
 
             // Whiten data
             print("  Whitening data ...", pOps);
+            timer.start();
             IntStream.range(0, vecLen).parallel().forEach(i ->{
                 double average = summaries[i].getAverage();
                 double stdDev = summaries[i].getStandardDeviation();

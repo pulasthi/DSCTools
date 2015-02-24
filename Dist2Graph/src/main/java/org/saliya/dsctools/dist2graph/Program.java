@@ -17,6 +17,11 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * Pairwise binary distance file to textual graph converter
+ *
+ * @author esaliya@gmail.com (Saliya Ekanayake)
+ */
 public class Program {
     private static DateFormat dateFormat = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss");
     private static Options programOptions = new Options();

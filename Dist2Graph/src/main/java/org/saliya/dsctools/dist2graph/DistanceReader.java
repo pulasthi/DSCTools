@@ -13,6 +13,11 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 
+/**
+ * Binary distance reader
+ *
+ * @author esaliya@gmail.com (Saliya Ekanayake)
+ */
 public abstract class DistanceReader {
     public short getDistance(int globalRow, int globalCol){
         throw new UnsupportedOperationException();

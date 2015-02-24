@@ -1,11 +1,15 @@
 package org.saliya.dsctools.dist2graph;
 
-import org.apache.commons.io.IOUtils;
+import com.google.common.base.Strings;
+import javafx.scene.shape.Path;
 import org.junit.Test;
 
 import java.io.*;
+import java.nio.ByteOrder;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.Pattern;
 
 /**
@@ -17,12 +21,61 @@ public class ProgramTest {
     @Test
     public void convertToGraph() throws IOException {
         String testDistanceFile = "test_8x8.txt";
-        String testGraphFile = "test_8x8_graph.txt";
-
         String binaryDistanceOutputFile = "output_8x8.bin";
         String graphOutputFileName = "output_8x8_graph.txt";
+        System.out.println("Generating binary distance file ...");
         int numPoints = generateDistanceFile(testDistanceFile, binaryDistanceOutputFile);
+        System.out.println("Done.");
+        System.out.println("Converting binary distance file to textual graph adjacency list ...");
         Program.convertToGraph(numPoints,true,true,binaryDistanceOutputFile,graphOutputFileName);
+        System.out.println("Done.");
+        System.out.println("Verifying graph against binary distance file ...");
+        verifyGraph(numPoints, binaryDistanceOutputFile, graphOutputFileName);
+        System.out.println("Done.");
+    }
+
+    private void verifyGraph(int numPoints, String binaryDistanceFile, String textGraphFile) throws IOException {
+        try(BufferedReader br = Files.newBufferedReader(Paths.get(textGraphFile))){
+            DistanceReader distanceReader = DistanceReader.readRowRange(binaryDistanceFile, 0, numPoints, numPoints,
+                                                                        ByteOrder.BIG_ENDIAN, true);
+            int graphNodes = Integer.parseInt(br.readLine());
+            assert graphNodes == numPoints;
+
+            Pattern pattern = Pattern.compile("[ ]");
+            int [] idxMask = new int[numPoints];
+            // initially assume disconnected nodes <= 1% of total nodes
+            for (int i = 0; i < numPoints; ++i){
+                int deg = 0;
+                // scan phase
+                for (int j = 0; j < numPoints; ++j){
+                    short d = distanceReader.getDistance(i, j);
+                    if (d == -1) continue;
+                    idxMask[deg] = j;
+                    ++deg;
+                }
+                String line = br.readLine();
+                assert !Strings.isNullOrEmpty(line);
+                String [] splits = pattern.split(line.trim());
+                assert splits.length == 2;
+                assert Integer.parseInt(splits[0]) == i;
+                assert Integer.parseInt(splits[1]) == deg;
+
+                // read phase
+                for (int j = 0; j < deg; ++j){
+                    line = br.readLine();
+                    assert !Strings.isNullOrEmpty(line);
+                    splits = pattern.split(line.trim());
+                    assert splits.length == 3;
+
+                    int idx = idxMask[j];
+                    assert Integer.parseInt(splits[0]) == idx;
+
+                    short d = distanceReader.getDistance(i, idx); // at this point d MUST be >= 0
+                    assert Double.parseDouble(splits[1]) - (d*1.0/Short.MAX_VALUE) < Double.MIN_NORMAL;
+                    assert Integer.parseInt(splits[2]) == 0;
+                }
+            }
+        }
     }
 
     /**

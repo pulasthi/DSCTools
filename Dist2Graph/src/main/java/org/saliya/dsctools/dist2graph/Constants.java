@@ -1,5 +1,10 @@
 package org.saliya.dsctools.dist2graph;
 
+/**
+ * Constants
+ *
+ * @author esaliya@gmail.com (Saliya Ekanayake)
+ */
 public class Constants {
     static final String PROGRAM_NAME = "Dist2Graph";
 

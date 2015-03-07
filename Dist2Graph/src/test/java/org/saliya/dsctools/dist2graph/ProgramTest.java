@@ -35,6 +35,7 @@ public class ProgramTest {
         System.out.println("Verifying graph against binary distance file ...");
         verifyGraph(numPoints, binaryDistanceOutputFile, graphOutputFileName);
         System.out.println("Done.");
+
     }
 
     private void verifyGraph(int numPoints, String binaryDistanceFile, String textGraphFile) throws IOException {
@@ -117,6 +118,7 @@ public class ProgramTest {
             assert count == rows;
 
             bos.flush();
+            bos.close();
             return rows;
         }
     }

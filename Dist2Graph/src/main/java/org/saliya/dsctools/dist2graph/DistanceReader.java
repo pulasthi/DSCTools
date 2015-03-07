@@ -27,14 +27,22 @@ public abstract class DistanceReader {
         if (mmap) {
             try (FileChannel fc = (FileChannel) Files.newByteChannel(Paths.get(fname), StandardOpenOption.READ)) {
                 long pos = ((long) startRow) * globalColCount * 2; // 2 for short values, which are 2 bytes long
-                MappedByteBuffer mappedBytes = fc.map(FileChannel.MapMode.READ_ONLY, pos,
-                                                      ((long)numRows) * globalColCount * 2); // 2 for short values, which are 2 bytes long
-                mappedBytes.order(endianness);
+                long size =((long) numRows) * globalColCount * 2; // 2 for short values, which are 2 bytes long
+
+                int m = Integer.MAX_VALUE - 1; // m = 2n for some n where n denotes the number of shorts
+                int mapCount = (int) Math.ceil((double)size / m);
+                MappedByteBuffer [] maps = new MappedByteBuffer[mapCount];
+                for (int i = 0; i < mapCount; ++i) {
+                    maps[i] = fc.map(FileChannel.MapMode.READ_ONLY, pos+(i*m), i < mapCount - 1 ? m : size%m);
+                    maps[i].order(endianness);
+                }
+
                 return new DistanceReader(){
                     @Override
                     public short getDistance(int globalRow, int globalCol) {
-                        int pos = (globalRow - startRow) * globalColCount + globalCol; // element position - not the byte position
-                        return mappedBytes.getShort(pos*2); // pos*2 is the byte position
+                        long pos = ((globalRow - startRow) * globalColCount + globalCol)*2; // byte position relative to start row
+                        int mapIdx = (int)(pos/m);
+                        return maps[mapIdx].getShort((int)(pos - (m*((long)mapIdx))));
                     }
                 };
             }

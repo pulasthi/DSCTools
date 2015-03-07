@@ -1,6 +1,7 @@
 package org.saliya.dsctools.dist2graph;
 
 import com.google.common.base.Strings;
+import com.google.common.io.LittleEndianDataOutputStream;
 import javafx.scene.shape.Path;
 import org.junit.Test;
 
@@ -27,7 +28,7 @@ public class ProgramTest {
         int numPoints = generateDistanceFile(testDistanceFile, binaryDistanceOutputFile);
         System.out.println("Done.");
         System.out.println("Converting binary distance file to textual graph adjacency list ...");
-        Program.convertToGraph(numPoints,true,true,binaryDistanceOutputFile,graphOutputFileName);
+        Program.convertToGraph(numPoints,true,false,binaryDistanceOutputFile,graphOutputFileName);
         System.out.println("Done.");
         System.out.println("Verifying graph against binary distance file ...");
         verifyGraph(numPoints, binaryDistanceOutputFile, graphOutputFileName);
@@ -37,7 +38,7 @@ public class ProgramTest {
     private void verifyGraph(int numPoints, String binaryDistanceFile, String textGraphFile) throws IOException {
         try(BufferedReader br = Files.newBufferedReader(Paths.get(textGraphFile))){
             DistanceReader distanceReader = DistanceReader.readRowRange(binaryDistanceFile, 0, numPoints, numPoints,
-                                                                        ByteOrder.BIG_ENDIAN, true);
+                                                                        ByteOrder.LITTLE_ENDIAN, true);
             int graphNodes = Integer.parseInt(br.readLine());
             assert graphNodes == numPoints;
 
@@ -96,7 +97,7 @@ public class ProgramTest {
     public int generateDistanceFile(String textDistanceFile, String binaryDistanceFile) throws IOException {
         try (BufferedReader br = new BufferedReader(new InputStreamReader(getFile(textDistanceFile)));
                 FileOutputStream fos = new FileOutputStream(binaryDistanceFile)){
-            DataOutputStream dos = new DataOutputStream(new BufferedOutputStream(fos));
+            LittleEndianDataOutputStream dos = new LittleEndianDataOutputStream(new BufferedOutputStream(fos));
             int rows = Integer.parseInt(br.readLine());
             int cols = Integer.parseInt(br.readLine());
             Pattern pattern = Pattern.compile("[\t ]");

@@ -33,6 +33,10 @@ public class Program {
                 .addOption(String.valueOf(Constants.CMD_OPTION_SHORT_N), true, Constants.CMD_OPTION_DESCRIPTION_N);
         programOptions
                 .addOption(String.valueOf(Constants.CMD_OPTION_SHORT_O), true, Constants.CMD_OPTION_DESCRIPTION_O);
+        programOptions
+                .addOption(String.valueOf(Constants.CMD_OPTION_SHORT_B), true, Constants.CMD_OPTION_DESCRIPTION_B);
+        programOptions
+                .addOption(String.valueOf(Constants.CMD_OPTION_SHORT_M), true, Constants.CMD_OPTION_DESCRIPTION_M);
     }
 
     public static void main(String[] args) {

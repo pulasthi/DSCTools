@@ -33,14 +33,14 @@ public abstract class DistanceReader {
                 int mapCount = (int) Math.ceil((double)size / m);
                 MappedByteBuffer [] maps = new MappedByteBuffer[mapCount];
                 for (int i = 0; i < mapCount; ++i) {
-                    maps[i] = fc.map(FileChannel.MapMode.READ_ONLY, pos+(i*m), i < mapCount - 1 ? m : size%m);
+                    maps[i] = fc.map(FileChannel.MapMode.READ_ONLY, pos+(((long)i)*m), i < mapCount - 1 ? m : size%m);
                     maps[i].order(endianness);
                 }
 
                 return new DistanceReader(){
                     @Override
                     public short getDistance(int globalRow, int globalCol) {
-                        long pos = ((globalRow - startRow) * globalColCount + globalCol)*2; // byte position relative to start row
+                        long pos = ((globalRow - startRow) * ((long)globalColCount) + globalCol)*2; // byte position relative to start row
                         int mapIdx = (int)(pos/m);
                         return maps[mapIdx].getShort((int)(pos - (m*((long)mapIdx))));
                     }

@@ -124,6 +124,7 @@ public class Program {
             int [] idxMask = new int[numPoints];
             // initially assume disconnected nodes <= 1% of total nodes
             List<Integer> disconnectedNodes = new ArrayList<>(numPoints / 100);
+            long edgeCount = 0; // total edges
             for (int i = 0; i < numPoints; ++i){
                 int deg = 0;
                 // scan phase
@@ -134,6 +135,7 @@ public class Program {
                     ++deg;
                 }
                 writer.println(i + " " + deg); // <ID_i> <Deg_i>
+                edgeCount+=deg;
                 if (deg == 0) disconnectedNodes.add(i);
                 // read phase
                 for (int j = 0; j < deg; ++j){
@@ -144,7 +146,10 @@ public class Program {
                 if (i>0 && i%100 == 0) System.out.println("  Converted " + i + " nodes so far ...");
             }
             writer.close();
-            System.out.println("  Conversion completed. There were " + numPoints + " total nodes and " + disconnectedNodes.size() + " disconnected nodes");
+            System.out.println("  Conversion completed.");
+            System.out.println("    Total nodes: " + numPoints);
+            System.out.println("    Disconnected nodes:  " + disconnectedNodes.size());
+            System.out.println("    Total edges: "  + edgeCount + " or " + (edgeCount/2) + " if undirected");
         } catch (IOException e) {
             System.err.format("Failed writing graph file: %s%n", e);
         }

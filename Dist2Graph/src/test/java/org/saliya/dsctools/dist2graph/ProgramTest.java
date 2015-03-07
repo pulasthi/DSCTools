@@ -24,11 +24,13 @@ public class ProgramTest {
         String testDistanceFile = "test_8x8.txt";
         String binaryDistanceOutputFile = "output_8x8.bin";
         String graphOutputFileName = "output_8x8_graph.txt";
+        boolean isBigEndian = false;
+        boolean isMemoryMapped = true;
         System.out.println("Generating binary distance file ...");
-        int numPoints = generateDistanceFile(testDistanceFile, binaryDistanceOutputFile);
+        int numPoints = generateDistanceFile(testDistanceFile, binaryDistanceOutputFile, isBigEndian);
         System.out.println("Done.");
         System.out.println("Converting binary distance file to textual graph adjacency list ...");
-        Program.convertToGraph(numPoints,true,false,binaryDistanceOutputFile,graphOutputFileName);
+        Program.convertToGraph(numPoints,isMemoryMapped,isBigEndian,binaryDistanceOutputFile,graphOutputFileName);
         System.out.println("Done.");
         System.out.println("Verifying graph against binary distance file ...");
         verifyGraph(numPoints, binaryDistanceOutputFile, graphOutputFileName);
@@ -94,10 +96,10 @@ public class ProgramTest {
      where {@code x} indicates real distances (in short format) and {@code -1} indicates missing distances
      Distances are always in the range of [0.0,1.0] and are squeezed into short by multiplying by {@code Short.MAX_VALUE}
      */
-    public int generateDistanceFile(String textDistanceFile, String binaryDistanceFile) throws IOException {
+    public int generateDistanceFile(String textDistanceFile, String binaryDistanceFile, boolean isBigEndian) throws IOException {
         try (BufferedReader br = new BufferedReader(new InputStreamReader(getFile(textDistanceFile)));
-                FileOutputStream fos = new FileOutputStream(binaryDistanceFile)){
-            LittleEndianDataOutputStream dos = new LittleEndianDataOutputStream(new BufferedOutputStream(fos));
+                BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(binaryDistanceFile))){
+            DataOutput dos = isBigEndian ? new DataOutputStream(bos) : new LittleEndianDataOutputStream(bos);
             int rows = Integer.parseInt(br.readLine());
             int cols = Integer.parseInt(br.readLine());
             Pattern pattern = Pattern.compile("[\t ]");
@@ -113,8 +115,8 @@ public class ProgramTest {
                 ++count;
             }
             assert count == rows;
-            dos.flush();
-            dos.close();
+
+            bos.flush();
             return rows;
         }
     }

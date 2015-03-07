@@ -28,7 +28,7 @@ public abstract class DistanceReader {
             try (FileChannel fc = (FileChannel) Files.newByteChannel(Paths.get(fname), StandardOpenOption.READ)) {
                 long pos = ((long) startRow) * globalColCount * 2; // 2 for short values, which are 2 bytes long
                 MappedByteBuffer mappedBytes = fc.map(FileChannel.MapMode.READ_ONLY, pos,
-                                                      numRows * globalColCount * 2); // 2 for short values, which are 2 bytes long
+                                                      numRows * globalColCount * 2L); // 2 for short values, which are 2 bytes long
                 mappedBytes.order(endianness);
                 return new DistanceReader(){
                     @Override

@@ -115,8 +115,11 @@ public class Program {
     public static void convertToGraph(int numPoints, boolean isMemoryMapped, boolean isBigEndian, String distanceFile,
                                        String outputFile) {
         Path filePath = Paths.get(outputFile);
+        Path metaFilePath = Paths.get(filePath.getParent().toString(), "meta.txt");
         try (PrintWriter writer = new PrintWriter(Files.newBufferedWriter(filePath, Charset.defaultCharset(), StandardOpenOption.CREATE, StandardOpenOption.WRITE),
-                                                  true)) {
+                                                  true);
+             PrintWriter metaWriter = new PrintWriter(Files.newBufferedWriter(metaFilePath, Charset.defaultCharset(), StandardOpenOption.CREATE, StandardOpenOption.WRITE),
+                                                  true);) {
             DistanceReader
                     distanceReader = DistanceReader.readRowRange(distanceFile, 0, numPoints, numPoints, isBigEndian?
                     ByteOrder.BIG_ENDIAN : ByteOrder.LITTLE_ENDIAN, isMemoryMapped);
@@ -127,25 +130,32 @@ public class Program {
             long edgeCount = 0; // total edges
             for (int i = 0; i < numPoints; ++i){
                 int deg = 0;
+                int noEdgeCount = 0; // missing distances -> no edge between node i and the corresponding other node
                 // scan phase
                 for (int j = 0; j < numPoints; ++j){
+                    if (i == j) continue; // ignore self edges
                     short d = distanceReader.getDistance(i, j);
-                    if (d == -1) continue;
+                    if (d == -1) {
+                        ++noEdgeCount;
+                        continue;
+                    }
                     idxMask[deg] = j;
                     ++deg;
                 }
+                metaWriter.println(i + " " + deg + " " + noEdgeCount);
                 writer.println(i + " " + deg); // <ID_i> <Deg_i>
                 edgeCount+=deg;
                 if (deg == 0) disconnectedNodes.add(i);
                 // read phase
-                for (int j = 0; j < deg; ++j){
+                /*for (int j = 0; j < deg; ++j){
                     int idx = idxMask[j];
                     short d = distanceReader.getDistance(i, idx); // at this point d MUST be >= 0
                     writer.println(" " + idx + " " + (d*1.0/Short.MAX_VALUE) + " 0"); // <Nbr_ID_ij> <W_ij> <T_ij>
-                }
+                }*/
                 if (i>0 && i%100 == 0) System.out.println("  Converted " + i + " nodes so far ...");
             }
             writer.close();
+            metaWriter.close();
             System.out.println("  Conversion completed.");
             System.out.println("    Total nodes: " + numPoints);
             System.out.println("    Disconnected nodes:  " + disconnectedNodes.size());

@@ -80,7 +80,7 @@ public class Program {
         System.out.println("=== Program Started on " + dateFormat.format(new Date()) + " ===");
         convertToGraph(numPoints, isMemoryMapped, isBigEndian, distanceFile, outputFile);
         mainTimer.stop();
-        System.out.println("=== Program terminated successfully on " + dateFormat.format(new Date())  +" running for" + (mainTimer.elapsed(
+        System.out.println("=== Program terminated successfully on " + dateFormat.format(new Date())  +" running for " + (mainTimer.elapsed(
                 TimeUnit.MILLISECONDS) * 0.0001)  + " seconds ===");
 
     }
@@ -135,7 +135,7 @@ public class Program {
                 for (int j = 0; j < numPoints; ++j){
                     if (i == j) continue; // ignore self edges
                     short d = distanceReader.getDistance(i, j);
-                    if (d == -1) {
+                    if (d == -Short.MAX_VALUE) {
                         ++noEdgeCount;
                         continue;
                     }
@@ -147,11 +147,11 @@ public class Program {
                 edgeCount+=deg;
                 if (deg == 0) disconnectedNodes.add(i);
                 // read phase
-                /*for (int j = 0; j < deg; ++j){
+                for (int j = 0; j < deg; ++j){
                     int idx = idxMask[j];
                     short d = distanceReader.getDistance(i, idx); // at this point d MUST be >= 0
                     writer.println(" " + idx + " " + (d*1.0/Short.MAX_VALUE) + " 0"); // <Nbr_ID_ij> <W_ij> <T_ij>
-                }*/
+                }
                 if (i>0 && i%100 == 0) System.out.println("  Converted " + i + " nodes so far ...");
             }
             writer.close();

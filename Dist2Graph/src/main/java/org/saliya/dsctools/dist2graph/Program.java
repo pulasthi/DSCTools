@@ -7,6 +7,8 @@ import org.apache.commons.cli.*;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.ByteOrder;
+import java.nio.MappedByteBuffer;
+import java.nio.channels.FileChannel;
 import java.nio.charset.Charset;
 import java.nio.file.*;
 import java.text.DateFormat;
@@ -16,6 +18,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.IntStream;
 
 /**
  * Pairwise binary distance file to textual graph converter
@@ -23,6 +26,7 @@ import java.util.concurrent.TimeUnit;
  * @author esaliya@gmail.com (Saliya Ekanayake)
  */
 public class Program {
+
     private static DateFormat dateFormat = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss");
     private static Options programOptions = new Options();
 
@@ -37,12 +41,14 @@ public class Program {
                 .addOption(String.valueOf(Constants.CMD_OPTION_SHORT_B), true, Constants.CMD_OPTION_DESCRIPTION_B);
         programOptions
                 .addOption(String.valueOf(Constants.CMD_OPTION_SHORT_M), true, Constants.CMD_OPTION_DESCRIPTION_M);
+        programOptions
+                .addOption(String.valueOf(Constants.CMD_OPTION_SHORT_MODE), true, Constants.CMD_OPTION_DESCRIPTION_MODE);
     }
 
     public static void main(String[] args) {
         Stopwatch mainTimer = Stopwatch.createStarted();
         Optional<CommandLine>
-                parserResult = parseCommandLineArguments(args, programOptions);
+                parserResult = Utils.parseCommandLineArguments(args, programOptions);
         if (!parserResult.isPresent()){
             System.out.println(Constants.ERR_PROGRAM_ARGUMENTS_PARSING_FAILED);
             new HelpFormatter().printHelp(Constants.PROGRAM_NAME, programOptions);
@@ -51,7 +57,8 @@ public class Program {
 
         CommandLine cmd = parserResult.get();
         if (!(cmd.hasOption(Constants.CMD_OPTION_SHORT_F) && cmd.hasOption(Constants.CMD_OPTION_SHORT_N) &&
-                cmd.hasOption(Constants.CMD_OPTION_SHORT_O) && cmd.hasOption(Constants.CMD_OPTION_SHORT_O))) {
+                cmd.hasOption(Constants.CMD_OPTION_SHORT_O) && cmd.hasOption(Constants.CMD_OPTION_SHORT_O) &&
+                cmd.hasOption(Constants.CMD_OPTION_SHORT_MODE))) {
             System.out.println(Constants.ERR_INVALID_PROGRAM_ARGUMENTS);
             new HelpFormatter().printHelp(Constants.PROGRAM_NAME, programOptions);
             return;
@@ -70,6 +77,8 @@ public class Program {
         String distanceFile = cmd.getOptionValue(Constants.CMD_OPTION_SHORT_F);
         String outputFile = cmd.getOptionValue(Constants.CMD_OPTION_SHORT_O);
 
+        String mode = cmd.getOptionValue(Constants.CMD_OPTION_SHORT_MODE);
+
         if (Strings.isNullOrEmpty(distanceFile)) {
             throw new IllegalArgumentException("Distance file error - " + Constants.ERR_EMPTY_FILE_NAME);
         }
@@ -78,11 +87,58 @@ public class Program {
         }
 
         System.out.println("=== Program Started on " + dateFormat.format(new Date()) + " ===");
-        convertToGraph(numPoints, isMemoryMapped, isBigEndian, distanceFile, outputFile);
+        if (Constants.MODE_GRAPH.equalsIgnoreCase(mode)) {
+            convertToGraph(numPoints, isMemoryMapped, isBigEndian, distanceFile, outputFile);
+        } else if (Constants.MODE_FIX.equalsIgnoreCase(mode)){
+            fixMissingDistances(numPoints, isMemoryMapped, isBigEndian, distanceFile, outputFile);
+        } else {
+            throw new RuntimeException(Constants.ERR_INVALID_PROGRAM_ARGUMENTS + " mode should be either " + Constants.MODE_GRAPH + " or " + Constants.MODE_FIX);
+        }
         mainTimer.stop();
         System.out.println("=== Program terminated successfully on " + dateFormat.format(new Date())  +" running for " + (mainTimer.elapsed(
                 TimeUnit.MILLISECONDS) * 0.0001)  + " seconds ===");
 
+    }
+
+    private static void fixMissingDistances(int numPoints, boolean isMemoryMapped, boolean isBigEndian, String distanceFile, String outputFile) {
+        if (!isMemoryMapped) {
+            throw new RuntimeException(Constants.ERR_INVALID_PROGRAM_ARGUMENTS + " -b must be true for this mode");
+        }
+
+        Path outputFilePath = Paths.get(outputFile);
+        try {
+            Files.write(outputFilePath, new byte[]{(byte)0}, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
+
+            try (FileChannel fc = (FileChannel) Files.newByteChannel(Paths.get(distanceFile), StandardOpenOption.READ);
+                 FileChannel wfc = (FileChannel) Files.newByteChannel(outputFilePath, StandardOpenOption.READ, StandardOpenOption.WRITE)) {
+                long pos = 0L; // start from the beginning
+                long size =((long) numPoints) * numPoints * 2; // 2 for short values, which are 2 bytes long
+
+                int m = Integer.MAX_VALUE - 1; // m = 2n for some n where n denotes the number of shorts
+                int mapCount = (int) Math.ceil((double)size / m);
+                MappedByteBuffer[] readMaps = new MappedByteBuffer[mapCount];
+                MappedByteBuffer[] writeMaps = new MappedByteBuffer[mapCount];
+                for (int i = 0; i < mapCount; ++i) {
+                    readMaps[i] = fc.map(FileChannel.MapMode.READ_ONLY, pos+(((long)i)*m), i < mapCount - 1 ? m : size%m);
+                    readMaps[i].order(isBigEndian ? ByteOrder.BIG_ENDIAN : ByteOrder.LITTLE_ENDIAN);
+                    writeMaps[i] = wfc.map(FileChannel.MapMode.READ_WRITE, pos+(((long)i)*m), i < mapCount - 1 ? m : size%m);
+                    writeMaps[i].order(isBigEndian ? ByteOrder.BIG_ENDIAN : ByteOrder.LITTLE_ENDIAN);
+                }
+
+                IntStream.range(0,mapCount).parallel().forEach(i->{
+                    MappedByteBuffer readMap = readMaps[i];
+                    MappedByteBuffer writeMap = writeMaps[i];
+
+                    int byteCount = i < mapCount - 1 ? m : (int)(size%m);
+                    for (int localByteIdx = 0; localByteIdx < byteCount; localByteIdx += 2){ // 2 for shor values, which are 2 bytes long
+                        short d = readMap.getShort(localByteIdx);
+                        writeMap.putShort(localByteIdx, d == -Short.MAX_VALUE ? Short.MAX_VALUE : d);
+                    }
+                });
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     /**
@@ -166,19 +222,6 @@ public class Program {
         }
     }
 
-    /**
-     * Parse command line arguments
-     * @param args Command line arguments
-     * @param opts Command line options
-     * @return An <code>Optional&lt;CommandLine&gt;</code> object
-     */
-    private static Optional<CommandLine> parseCommandLineArguments(String [] args, Options opts){
-        CommandLineParser optParser = new GnuParser();
-        try {
-            return Optional.ofNullable(optParser.parse(opts, args));
-        } catch (ParseException e) {
-            throw new RuntimeException("Command line parsing failed ", e);
-        }
-    }
+
 
 }

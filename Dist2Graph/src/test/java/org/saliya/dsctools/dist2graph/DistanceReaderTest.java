@@ -1,16 +1,12 @@
 package org.saliya.dsctools.dist2graph;
 
 import com.google.common.io.LittleEndianDataOutputStream;
-import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.ShortBuffer;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.regex.Pattern;
 
 public class DistanceReaderTest {
     @Test

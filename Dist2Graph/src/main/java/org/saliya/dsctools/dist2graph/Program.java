@@ -115,7 +115,8 @@ public class Program {
     public static void convertToGraph(int numPoints, boolean isMemoryMapped, boolean isBigEndian, String distanceFile,
                                        String outputFile) {
         Path filePath = Paths.get(outputFile);
-        Path metaFilePath = Paths.get(filePath.getParent().toString(), "meta.txt");
+        Path parent = filePath.getParent();
+        Path metaFilePath = Paths.get(parent != null ? parent.toString() : "", "meta.txt");
         try (PrintWriter writer = new PrintWriter(Files.newBufferedWriter(filePath, Charset.defaultCharset(), StandardOpenOption.CREATE, StandardOpenOption.WRITE),
                                                   true);
              PrintWriter metaWriter = new PrintWriter(Files.newBufferedWriter(metaFilePath, Charset.defaultCharset(), StandardOpenOption.CREATE, StandardOpenOption.WRITE),

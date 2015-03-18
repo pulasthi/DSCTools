@@ -2,15 +2,12 @@ package org.saliya.dsctools.dist2graph;
 
 import com.google.common.base.Strings;
 import com.google.common.io.LittleEndianDataOutputStream;
-import javafx.scene.shape.Path;
 import org.junit.Test;
 
 import java.io.*;
 import java.nio.ByteOrder;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.regex.Pattern;
 
 /**
@@ -52,8 +49,9 @@ public class ProgramTest {
                 int deg = 0;
                 // scan phase
                 for (int j = 0; j < numPoints; ++j){
+                    if (i == j) continue; // ignore self edges
                     short d = distanceReader.getDistance(i, j);
-                    if (d == -1) continue;
+                    if (d == -Short.MAX_VALUE) continue;
                     idxMask[deg] = j;
                     ++deg;
                 }
@@ -85,14 +83,14 @@ public class ProgramTest {
     /**
      * Will produce a 8x8 distance matrix of the following format<br>
      <pre>{@code
-    -1  x  -1  -1  x  -1  -1  -1
-    -1 -1   x   x  x   x  -1  -1
-    -1  x  -1  -1 -1   x  -1  -1
-    -1 -1   x  -1 -1  -1  -1   x
-     x -1  -1   x -1   x  -1  -1
-    -1  x  -1   x  x  -1   x  -1
-    -1 -1  -1  -1 -1  -1  -1  -1
-    -1  x   x  -1 -1   x  -1   x
+    0  x  -1  -1  x  -1  -1  -1
+    -1 0   x   x  x   x  -1  -1
+    -1  x  0  -1 -1   x  -1  -1
+    -1 -1   x  0 -1  -1  -1   x
+     x -1  -1   x 0   x  -1  -1
+    -1  x  -1   x  x  0   x  -1
+    -1 -1  -1  -1 -1  -1  0  -1
+    -1  x   x  -1 -1   x  -1   0
     }<br></pre>
      where {@code x} indicates real distances (in short format) and {@code -1} indicates missing distances
      Distances are always in the range of [0.0,1.0] and are squeezed into short by multiplying by {@code Short.MAX_VALUE}
@@ -110,8 +108,13 @@ public class ProgramTest {
                 String [] splits = pattern.split(line.trim());
                 assert splits.length == cols;
                 for (String split : splits) {
-                    if (split.equals("-1")) dos.writeShort((short) -1);
-                    if (split.equals("x")) dos.writeShort((short) (Math.random() * Short.MAX_VALUE));
+                    if (split.equals("-1")){
+                        dos.writeShort((short) -Short.MAX_VALUE);
+                    } else if (split.equals("x")) {
+                        dos.writeShort((short) (Math.random() * Short.MAX_VALUE));
+                    } else {
+                        dos.writeShort((short)0);
+                    }
                 }
                 ++count;
             }

@@ -26,24 +26,25 @@ public class DataModifier{
         Set<Integer> exprtset = new HashSet<>();
 
         populateVariations(variationfile);
-        FileWriter writer = new FileWriter(outputfile + "_:" + rt_rangeMin + ":" + rt_rangeMax + "_" + m_z_rangeMin + ":" + m_z_rangeMax);
+        FileWriter writer = new FileWriter(outputfile.substring(0,outputfile.indexOf(".")) + ".rt." + rt_rangeMin + "_" + rt_rangeMax + ".mz" + m_z_rangeMin + "_" + m_z_rangeMax + ".txt");
         PrintWriter printWriter = new PrintWriter(writer);
 
         try(BufferedReader buf = Files.newBufferedReader(Paths.get(datafile))){
             String line;
             line = buf.readLine();
-            printWriter.println(line);
             int count = 0;
             int counttotal = 0;
             double rtmax = 0,rtmin = Double.MAX_VALUE;
             double m_zmax = 0,m_zmin = Double.MAX_VALUE;
+            printWriter.println("idx\tmz\trt\tcharge\tSimulatedClusterLable\tpeptide" +
+                    ".id\tmclust\tmedea");
             while (!Strings.isNullOrEmpty(line = buf.readLine())){
                 counttotal++;
                 String[] values = line.split(",");
                 int exprt = Integer.valueOf(values[0]);
                 double m_over_z = Double.valueOf(values[1]);
                 double rt = Double.valueOf(values[2]);
-                m_over_z = m_over_z + (variations.get(exprt)*1.e-6);
+                m_over_z = m_over_z - (variations.get(exprt)*1.e-6);
                 values[1] = String.valueOf(m_over_z);
 
                 rtmax = Math.max(rtmax,rt);
@@ -54,12 +55,12 @@ public class DataModifier{
                 if(rt_rangeMin > rt || rt_rangeMax < rt) continue;
                 if(m_z_rangeMin > m_over_z || m_z_rangeMax < m_over_z) continue;
 
-                for (String value : values) {
-                    printWriter.print(value);
-                    printWriter.print(",");
-                }
+                printWriter.println(
+                            count + "\t" + m_over_z + '\t' + rt + '\t' +
+                                    values[3] + '\t' + values[4] + '\t' + 0 +
+                                    '\t' + 0 + '\t' + 0);
+
                 exprtset.add(exprt);
-                printWriter.println();
                 count++;
             }
             System.out.format("RT Min: (%f) and Max: (%f) \n", rtmin,rtmax);

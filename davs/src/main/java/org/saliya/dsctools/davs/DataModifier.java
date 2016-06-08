@@ -17,16 +17,21 @@ public class DataModifier{
         populateConfig(configFile);
         String variationfile = config.get("VariationsFile");
         String datafile = config.get("DataFile");
+        String outputfileDir = config.get("OutputFileDir");
         String outputfile = config.get("OutputFile");
         double rt_rangeMin = Double.valueOf(config.get("RT_Rangemin"));
         double rt_rangeMax = Double.valueOf(config.get("RT_Rangemax"));
         double m_z_rangeMin = Double.valueOf(config.get("M_Z_Rangemin"));
         double m_z_rangeMax = Double.valueOf(config.get("M_Z_Rangemax"));
+        int chargeval = Integer.valueOf(config.get("charge"));
 
         Set<Integer> exprtset = new HashSet<>();
 
         populateVariations(variationfile);
-        FileWriter writer = new FileWriter(outputfile.substring(0,outputfile.indexOf(".")) + ".rt." + rt_rangeMin + "_" + rt_rangeMax + ".mz" + m_z_rangeMin + "_" + m_z_rangeMax + ".txt");
+        outputfileDir += rt_rangeMin + "x" + rt_rangeMax + "x" + m_z_rangeMin + "x" + m_z_rangeMax + "x";
+        new File(outputfileDir).mkdirs();
+
+        FileWriter writer = new FileWriter(outputfileDir + "/" +outputfile.substring(0,outputfile.indexOf(".")) + ".rt." + rt_rangeMin + "_" + rt_rangeMax + ".mz" + m_z_rangeMin + "_" + m_z_rangeMax + ".txt");
         PrintWriter printWriter = new PrintWriter(writer);
 
         try(BufferedReader buf = Files.newBufferedReader(Paths.get(datafile))){
@@ -37,14 +42,15 @@ public class DataModifier{
             double rtmax = 0,rtmin = Double.MAX_VALUE;
             double m_zmax = 0,m_zmin = Double.MAX_VALUE;
             printWriter.println("idx\tmz\trt\tcharge\tSimulatedClusterLable\tpeptide" +
-                    ".id\tmclust\tmedea");
+                    ".id\tmclust\tmedea\texprt");
             while (!Strings.isNullOrEmpty(line = buf.readLine())){
                 counttotal++;
                 String[] values = line.split(",");
                 int exprt = Integer.valueOf(values[0]);
                 double m_over_z = Double.valueOf(values[1]);
                 double rt = Double.valueOf(values[2]);
-                m_over_z = m_over_z - (variations.get(exprt)*1.e-6);
+                int charge = Integer.valueOf(values[3]);
+                m_over_z = m_over_z - (variations.get(exprt)*1.e-6*m_over_z);
                 values[1] = String.valueOf(m_over_z);
 
                 rtmax = Math.max(rtmax,rt);
@@ -54,11 +60,12 @@ public class DataModifier{
 
                 if(rt_rangeMin > rt || rt_rangeMax < rt) continue;
                 if(m_z_rangeMin > m_over_z || m_z_rangeMax < m_over_z) continue;
+                if(chargeval != -1 && charge != chargeval) continue;
 
                 printWriter.println(
                             count + "\t" + m_over_z + '\t' + rt + '\t' +
                                     values[3] + '\t' + values[4] + '\t' + 0 +
-                                    '\t' + 0 + '\t' + 0);
+                                    '\t' + 0 + '\t' + 0 + '\t' + exprt);
 
                 exprtset.add(exprt);
                 count++;

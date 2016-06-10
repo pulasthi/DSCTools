@@ -1,6 +1,9 @@
 package org.saliya.dsctools.davs;
 
 import com.google.common.base.Strings;
+import com.google.common.collect.ListMultimap;
+import com.google.common.collect.MultimapBuilder;
+
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -25,10 +28,24 @@ public class DataModifier{
         double m_z_rangeMax = Double.valueOf(config.get("M_Z_Rangemax"));
         int chargeval = Integer.valueOf(config.get("charge"));
 
+//        List<Integer> index = new ArrayList<>();
+//        List<Double> mz = new ArrayList<>();
+//        List<Double> rt = new ArrayList<>();
+//        List<Integer> charge = new ArrayList<>();
+//        List<String> slabel = new ArrayList<>();
+//        List<Integer> peptideid = new ArrayList<>();
+//        List<Integer> mclustt = new ArrayList<>();
+//        List<Integer> medea = new ArrayList<>();
+//        List<Integer> expert = new ArrayList<>();
+
+      //  Map<Double,String> mapbymz = new TreeMap<Double,String>();
+        ListMultimap<Double, String> mhm = MultimapBuilder.treeKeys().arrayListValues().build();
+        ListMultimap<Double, String> mhmminus = MultimapBuilder.treeKeys().arrayListValues().build();
+
         Set<Integer> exprtset = new HashSet<>();
 
         populateVariations(variationfile);
-        outputfileDir += rt_rangeMin + "x" + rt_rangeMax + "x" + m_z_rangeMin + "x" + m_z_rangeMax + "x";
+        outputfileDir += rt_rangeMin + "x" + rt_rangeMax + "x" + m_z_rangeMin + "x" + m_z_rangeMax + "x" + chargeval;
         new File(outputfileDir).mkdirs();
 
         FileWriter writer = new FileWriter(outputfileDir + "/" +outputfile.substring(0,outputfile.indexOf(".")) + ".rt." + rt_rangeMin + "_" + rt_rangeMax + ".mz" + m_z_rangeMin + "_" + m_z_rangeMax + ".txt");
@@ -61,19 +78,56 @@ public class DataModifier{
                 if(rt_rangeMin > rt || rt_rangeMax < rt) continue;
                 if(m_z_rangeMin > m_over_z || m_z_rangeMax < m_over_z) continue;
                 if(chargeval != -1 && charge != chargeval) continue;
+                String outputline = count + "\t" + m_over_z + '\t' + rt + '\t' +
+                                values[3] + '\t' + values[4] + '\t' + 0 +
+                                '\t' + 0 + '\t' + 0 + '\t' + exprt;
 
-                printWriter.println(
-                            count + "\t" + m_over_z + '\t' + rt + '\t' +
-                                    values[3] + '\t' + values[4] + '\t' + 0 +
-                                    '\t' + 0 + '\t' + 0 + '\t' + exprt);
+                String outputlineminus = count + "\t" + m_over_z + '\t' + rt + '\t' +
+                        values[3] + '\t' + values[4] + '\t' + -1 +
+                        '\t' + -1 + '\t' + -1 + '\t' + exprt;
+
+
+                mhm.put(m_over_z,outputline);
+                mhmminus.put(m_over_z,outputlineminus);
+                printWriter.println(outputline);
 
                 exprtset.add(exprt);
+
                 count++;
             }
+
+            FileWriter writer2 = new FileWriter(outputfileDir + "/" +outputfile.substring(0,outputfile.indexOf(".")) + ".rt." + rt_rangeMin + "_" + rt_rangeMax + ".mz" + m_z_rangeMin + "_" + m_z_rangeMax + ".formatted.txt");
+            PrintWriter printWriter2 = new PrintWriter(writer2);
+            FileWriter writer3 = new FileWriter(outputfileDir + "/" +outputfile.substring(0,outputfile.indexOf(".")) + ".rt." + rt_rangeMin + "_" + rt_rangeMax + ".mz" + m_z_rangeMin + "_" + m_z_rangeMax + ".formatted.minus1.txt");
+            PrintWriter printWriter3 = new PrintWriter(writer3);
+
+            int count2 = 0;
+            Collection<String> values = mhm.values();
+            printWriter2.println("idx\tmz\trt\tcharge\tSimulatedClusterLable\tpeptide" +
+                    ".id\tmclust\tmedea\texprt");
+            for(String s: values){
+                printWriter2.println(s);
+                count2++;
+            }
+
+            Collection<String> valuesminus = mhmminus.values();
+            printWriter3.println("idx\tmz\trt\tcharge\tSimulatedClusterLable\tpeptide" +
+                    ".id\tmclust\tmedea\texprt");
+            for(String s: valuesminus){
+                printWriter3.println(s);
+            }
+
+            printWriter2.flush();
+            printWriter2.close();
+
+            printWriter3.flush();
+            printWriter3.close();
+
             System.out.format("RT Min: (%f) and Max: (%f) \n", rtmin,rtmax);
             System.out.format("M/Z Min: (%f) and Max: (%f) \n", m_zmin,m_zmax);
             System.out.format("Total Number of data Points: %d \n", counttotal);
             System.out.format("Number of data Points after filter: %d \n", count);
+            System.out.format("Number of data Points after filter in formatted: %d \n", count2);
             System.out.format("Number of experiments in filtered data: %d \n", exprtset.size());
         } catch (IOException e) {
             e.printStackTrace();

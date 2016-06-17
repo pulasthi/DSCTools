@@ -12,6 +12,7 @@ import java.util.*;
 public class DataModifier{
 
     public static Map<Integer,Double> variations = new HashMap<>();
+    public static Map<Integer,Double[]> experimentShifts = new HashMap<>();
     public static Map<String,String> config = new HashMap<>();
 
 
@@ -22,24 +23,20 @@ public class DataModifier{
         String datafile = config.get("DataFile");
         String outputfileDir = config.get("OutputFileDir");
         String outputfile = config.get("OutputFile");
+        String experimentShiftFile = config.get("ExperimentShiftFile");
+        String experimentShift = config.get("ExperimentShift");
+        Boolean isDataFromRun = Boolean.valueOf(config.get("datafromrun"));
+
+        if(experimentShift.equals("true")){
+            populateExperimentShift(experimentShiftFile);
+        }
+
         double rt_rangeMin = Double.valueOf(config.get("RT_Rangemin"));
         double rt_rangeMax = Double.valueOf(config.get("RT_Rangemax"));
         double m_z_rangeMin = Double.valueOf(config.get("M_Z_Rangemin"));
         double m_z_rangeMax = Double.valueOf(config.get("M_Z_Rangemax"));
         int chargeval = Integer.valueOf(config.get("charge"));
 
-//        List<Integer> index = new ArrayList<>();
-//        List<Double> mz = new ArrayList<>();
-//        List<Double> rt = new ArrayList<>();
-//        List<Integer> charge = new ArrayList<>();
-//        List<String> slabel = new ArrayList<>();
-//        List<Integer> peptideid = new ArrayList<>();
-//        List<Integer> mclustt = new ArrayList<>();
-//        List<Integer> medea = new ArrayList<>();
-//        List<Integer> expert = new ArrayList<>();
-
-      //  Map<Double,String> mapbymz = new TreeMap<Double,String>();
-        ListMultimap<Double, String> mhm = MultimapBuilder.treeKeys().arrayListValues().build();
         ListMultimap<Double, String> mhmminus = MultimapBuilder.treeKeys().arrayListValues().build();
 
         Set<Integer> exprtset = new HashSet<>();
@@ -48,77 +45,113 @@ public class DataModifier{
         outputfileDir += rt_rangeMin + "x" + rt_rangeMax + "x" + m_z_rangeMin + "x" + m_z_rangeMax + "x" + chargeval;
         new File(outputfileDir).mkdirs();
 
-        FileWriter writer = new FileWriter(outputfileDir + "/" +outputfile.substring(0,outputfile.indexOf(".")) + ".rt." + rt_rangeMin + "_" + rt_rangeMax + ".mz" + m_z_rangeMin + "_" + m_z_rangeMax + ".txt");
-        PrintWriter printWriter = new PrintWriter(writer);
-
         try(BufferedReader buf = Files.newBufferedReader(Paths.get(datafile))){
             String line;
-            line = buf.readLine();
+            if(!isDataFromRun){
+                line = buf.readLine();
+            }
             int count = 0;
             int counttotal = 0;
             double rtmax = 0,rtmin = Double.MAX_VALUE;
             double m_zmax = 0,m_zmin = Double.MAX_VALUE;
-            printWriter.println("idx\tmz\trt\tcharge\tSimulatedClusterLable\tpeptide" +
-                    ".id\tmclust\tmedea\texprt");
-            while (!Strings.isNullOrEmpty(line = buf.readLine())){
-                counttotal++;
-                String[] values = line.split(",");
-                int exprt = Integer.valueOf(values[0]);
-                double m_over_z = Double.valueOf(values[1]);
-                double rt = Double.valueOf(values[2]);
-                int charge = Integer.valueOf(values[3]);
-                m_over_z = m_over_z - (variations.get(exprt)*1.e-6*m_over_z);
-                values[1] = String.valueOf(m_over_z);
 
-                rtmax = Math.max(rtmax,rt);
-                m_zmax = Math.max(m_over_z,m_zmax);
-                rtmin = Math.min(rtmin, rt);
-                m_zmin = Math.min(m_over_z, m_zmin);
+            String outputline;
+            String outputlineminus;
+            int exprt;
+            double m_over_z;
+            double rt;
+            int charge;
+            double val1;
+            double val2;
+            ArrayList<String> centers = new ArrayList<>();
 
-                if(rt_rangeMin > rt || rt_rangeMax < rt) continue;
-                if(m_z_rangeMin > m_over_z || m_z_rangeMax < m_over_z) continue;
-                if(chargeval != -1 && charge != chargeval) continue;
-                String outputline = count + "\t" + m_over_z + '\t' + rt + '\t' +
-                                values[3] + '\t' + values[4] + '\t' + 0 +
-                                '\t' + 0 + '\t' + 0 + '\t' + exprt;
+            String ouputfileFinal = null;
+            if(!isDataFromRun) {
+                while (!Strings.isNullOrEmpty(line = buf.readLine())) {
+                    counttotal++;
+                    String[] values = line.split(",");
+                    exprt = Integer.valueOf(values[0]);
+                    m_over_z = Double.valueOf(values[1]);
+                    rt = Double.valueOf(values[2]);
+                    charge = Integer.valueOf(values[3]);
+                    m_over_z = m_over_z - (variations.get(exprt) * 1.e-6 * m_over_z);
+                    values[1] = String.valueOf(m_over_z);
 
-                String outputlineminus = count + "\t" + m_over_z + '\t' + rt + '\t' +
-                        values[3] + '\t' + values[4] + '\t' + -1 +
-                        '\t' + -1 + '\t' + -1 + '\t' + exprt;
+                    if (experimentShift.equals("true")) {
+                        m_over_z = m_over_z - 2.1700e-6 * m_over_z * (experimentShifts.get(exprt)[0]);
+                        rt = rt - 3.13 * experimentShifts.get(exprt)[2];
+                    }
+
+                    rtmax = Math.max(rtmax, rt);
+                    m_zmax = Math.max(m_over_z, m_zmax);
+                    rtmin = Math.min(rtmin, rt);
+                    m_zmin = Math.min(m_over_z, m_zmin);
+
+                    if (rt_rangeMin > rt || rt_rangeMax < rt) continue;
+                    if (m_z_rangeMin > m_over_z || m_z_rangeMax < m_over_z) continue;
+                    if (chargeval != -1 && charge != chargeval) continue;
+
+                    outputlineminus = count + "\t" + m_over_z + '\t' + rt + '\t' +
+                            values[3] + '\t' + values[4] + '\t' + -1 +
+                            '\t' + -1 + '\t' + -1 + '\t' + exprt;
 
 
-                mhm.put(m_over_z,outputline);
-                mhmminus.put(m_over_z,outputlineminus);
-                printWriter.println(outputline);
+                    mhmminus.put(m_over_z, outputlineminus);
+                    exprtset.add(exprt);
+                    count++;
+                }
+                ouputfileFinal =  outputfileDir + "/" +outputfile.substring(0,outputfile.indexOf(".")) + ".rt." + rt_rangeMin + "_" + rt_rangeMax + ".mz" + m_z_rangeMin + "_" + m_z_rangeMax + ".formatted.minus1.txt";
+            }else{
+                int clusterNumber;
+                while (!Strings.isNullOrEmpty(line = buf.readLine())) {
+                    counttotal++;
+                    String[] values = line.split(" ");
+                    exprt = Integer.valueOf(values[9]);
+                    m_over_z = Double.valueOf(values[1]);
+                    rt = Double.valueOf(values[2]);
+                    clusterNumber = Integer.valueOf(values[4]);
 
-                exprtset.add(exprt);
+                    if(clusterNumber == 100000000 ) {
+                        centers.add(line);
+                        continue;
+                    }
 
-                count++;
+                    if (experimentShift.equals("true")) {
+                        m_over_z = m_over_z - 2.1700e-6 * m_over_z * (experimentShifts.get(exprt)[0]);
+                        rt = rt - 3.13 * experimentShifts.get(exprt)[2];
+                    }
+
+                    outputlineminus = values[0] + " " + m_over_z + ' ' + rt + ' ' +
+                            values[3] + ' ' + values[4] + ' ' + values[5] +
+                            ' ' + values[6] + ' ' + values[7] + ' ' + values[8] + ' ' + exprt;
+
+
+                    mhmminus.put(m_over_z, outputlineminus);
+                    exprtset.add(exprt);
+                    count++;
+                }
+                ouputfileFinal = datafile.replace(".txt",".shifted.txt");
             }
 
-            FileWriter writer2 = new FileWriter(outputfileDir + "/" +outputfile.substring(0,outputfile.indexOf(".")) + ".rt." + rt_rangeMin + "_" + rt_rangeMax + ".mz" + m_z_rangeMin + "_" + m_z_rangeMax + ".formatted.txt");
-            PrintWriter printWriter2 = new PrintWriter(writer2);
-            FileWriter writer3 = new FileWriter(outputfileDir + "/" +outputfile.substring(0,outputfile.indexOf(".")) + ".rt." + rt_rangeMin + "_" + rt_rangeMax + ".mz" + m_z_rangeMin + "_" + m_z_rangeMax + ".formatted.minus1.txt");
+            FileWriter writer3 = new FileWriter(ouputfileFinal);
             PrintWriter printWriter3 = new PrintWriter(writer3);
 
             int count2 = 0;
-            Collection<String> values = mhm.values();
-            printWriter2.println("idx\tmz\trt\tcharge\tSimulatedClusterLable\tpeptide" +
-                    ".id\tmclust\tmedea\texprt");
-            for(String s: values){
-                printWriter2.println(s);
+
+            Collection<String> valuesminus = mhmminus.values();
+            if(!isDataFromRun){
+                printWriter3.println("idx\tmz\trt\tcharge\tSimulatedClusterLable\tpeptide" +
+                        ".id\tmclust\tmedea\texprt");
+            }
+
+            for(String s: valuesminus){
+                printWriter3.println(s);
                 count2++;
             }
 
-            Collection<String> valuesminus = mhmminus.values();
-            printWriter3.println("idx\tmz\trt\tcharge\tSimulatedClusterLable\tpeptide" +
-                    ".id\tmclust\tmedea\texprt");
-            for(String s: valuesminus){
-                printWriter3.println(s);
+            if(isDataFromRun){
+                centers.forEach(printWriter3::println);
             }
-
-            printWriter2.flush();
-            printWriter2.close();
 
             printWriter3.flush();
             printWriter3.close();
@@ -133,8 +166,25 @@ public class DataModifier{
             e.printStackTrace();
         }
 
-        printWriter.flush();
-        printWriter.close();
+    }
+
+    private static void populateExperimentShift(String experimentShiftFile) {
+        try(BufferedReader buf = Files.newBufferedReader(Paths.get(experimentShiftFile))){
+            String line = buf.readLine();
+            while(!Strings.isNullOrEmpty(line = buf.readLine())){
+                String[] values = line.split("\t");
+                Double[] shifts = new Double[4];
+                shifts[0] = Double.valueOf(values[1]);
+                shifts[1] = Double.valueOf(values[2]);
+                shifts[2] = Double.valueOf(values[3]);
+                shifts[3] = Double.valueOf(values[4]);
+                experimentShifts.put(Integer.valueOf(values[0]),shifts);
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
     }
 
     private static void populateConfig(String configFile) {

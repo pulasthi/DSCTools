@@ -26,6 +26,8 @@ public class DataModifier{
         String experimentShiftFile = config.get("ExperimentShiftFile");
         String experimentShift = config.get("ExperimentShift");
         Boolean isDataFromRun = Boolean.valueOf(config.get("datafromrun"));
+        Boolean shiftInputFile = Boolean.valueOf(config.get("shiftinoutfile"));
+        Boolean sortonmz = Boolean.valueOf(config.get("sortonmz"));
 
         if(experimentShift.equals("true")){
             populateExperimentShift(experimentShiftFile);
@@ -64,9 +66,10 @@ public class DataModifier{
             double val1;
             double val2;
             ArrayList<String> centers = new ArrayList<>();
+            ArrayList<String> temparraylist = new ArrayList<>();
 
             String ouputfileFinal = null;
-            if(!isDataFromRun) {
+            if(!isDataFromRun && !shiftInputFile) {
                 while (!Strings.isNullOrEmpty(line = buf.readLine())) {
                     counttotal++;
                     String[] values = line.split(",");
@@ -74,7 +77,7 @@ public class DataModifier{
                     m_over_z = Double.valueOf(values[1]);
                     rt = Double.valueOf(values[2]);
                     charge = Integer.valueOf(values[3]);
-                    m_over_z = m_over_z - (variations.get(exprt) * 1.e-6 * m_over_z);
+                    //m_over_z = m_over_z - (variations.get(exprt) * 1.e-6 * m_over_z);
                     values[1] = String.valueOf(m_over_z);
 
                     if (experimentShift.equals("true")) {
@@ -101,7 +104,7 @@ public class DataModifier{
                     count++;
                 }
                 ouputfileFinal =  outputfileDir + "/" +outputfile.substring(0,outputfile.indexOf(".")) + ".rt." + rt_rangeMin + "_" + rt_rangeMax + ".mz" + m_z_rangeMin + "_" + m_z_rangeMax + ".formatted.minus1.txt";
-            }else{
+            }else if(!shiftInputFile){
                 int clusterNumber;
                 while (!Strings.isNullOrEmpty(line = buf.readLine())) {
                     counttotal++;
@@ -118,19 +121,48 @@ public class DataModifier{
 
                     if (experimentShift.equals("true")) {
                         m_over_z = m_over_z - 2.1700e-6 * m_over_z * (experimentShifts.get(exprt)[0]);
-                        rt = rt - 3.13 * experimentShifts.get(exprt)[2];
+                       rt = rt - 3.13 * experimentShifts.get(exprt)[2];
                     }
-
                     outputlineminus = values[0] + " " + m_over_z + ' ' + rt + ' ' +
                             values[3] + ' ' + values[4] + ' ' + values[5] +
                             ' ' + values[6] + ' ' + values[7] + ' ' + values[8] + ' ' + exprt;
 
 
-                    mhmminus.put(m_over_z, outputlineminus);
+
+                 //   mhmminus.put(m_over_z, outputlineminus);
+                    temparraylist.add(outputlineminus);
                     exprtset.add(exprt);
                     count++;
                 }
-                ouputfileFinal = datafile.replace(".txt",".shifted.txt");
+                ouputfileFinal = datafile.replace(".txt",".shifted.unsorted.txt");
+            }else{
+
+                while (!Strings.isNullOrEmpty(line = buf.readLine())) {
+                    counttotal++;
+                    String[] values = line.split("\t");
+                    exprt = Integer.valueOf(values[8]);
+                    m_over_z = Double.valueOf(values[1]);
+                    rt = Double.valueOf(values[2]);
+
+
+                    if (experimentShift.equals("true")) {
+                        m_over_z = m_over_z - 2.1700e-6 * m_over_z * (experimentShifts.get(exprt)[0]);
+                        rt = rt - 3.13 * experimentShifts.get(exprt)[2];
+                    }
+
+                    outputlineminus = values[0] + "\t" + m_over_z + '\t' + rt + '\t' +
+                            values[3] + '\t' + values[4] + '\t' + values[5] +
+                            '\t' + values[6] + '\t' + values[7] + '\t' + values[8];
+
+                    if(sortonmz){
+                        mhmminus.put(m_over_z, outputlineminus);
+                    }else{
+                        temparraylist.add(outputlineminus);
+                    }
+                    count++;
+                }
+                ouputfileFinal =  outputfileDir + "/" +outputfile.substring(0,outputfile.indexOf(".")) + ".rt." + rt_rangeMin + "_" + rt_rangeMax + ".mz" + m_z_rangeMin + "_" + m_z_rangeMax + ".formatted.shifted.minus1.txt";
+
             }
 
             FileWriter writer3 = new FileWriter(ouputfileFinal);
@@ -138,20 +170,35 @@ public class DataModifier{
 
             int count2 = 0;
 
-            Collection<String> valuesminus = mhmminus.values();
-            if(!isDataFromRun){
+            if(!shiftInputFile){
+                Collection<String> valuesminus = mhmminus.values();
+                if(!isDataFromRun){
+                    printWriter3.println("idx\tmz\trt\tcharge\tSimulatedClusterLable\tpeptide" +
+                            ".id\tmclust\tmedea\texprt");
+                    for(String s: valuesminus){
+                        printWriter3.println(s);
+                        count2++;
+                    }
+                }
+
+                if(isDataFromRun){
+                    temparraylist.forEach(printWriter3::println);
+                    centers.forEach(printWriter3::println);
+                }
+            }else{
                 printWriter3.println("idx\tmz\trt\tcharge\tSimulatedClusterLable\tpeptide" +
                         ".id\tmclust\tmedea\texprt");
+                if(sortonmz){
+                    Collection<String> valuesminus = mhmminus.values();
+                    for(String s: valuesminus){
+                        printWriter3.println(s);
+                        count2++;
+                    }
+                }else{
+                    temparraylist.forEach(printWriter3::println);
+                }
             }
 
-            for(String s: valuesminus){
-                printWriter3.println(s);
-                count2++;
-            }
-
-            if(isDataFromRun){
-                centers.forEach(printWriter3::println);
-            }
 
             printWriter3.flush();
             printWriter3.close();

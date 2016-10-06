@@ -67,6 +67,7 @@ public class DataModifier{
             double val2;
             ArrayList<String> centers = new ArrayList<>();
             ArrayList<String> temparraylist = new ArrayList<>();
+            int[] exprimentcounts = new int[37];
 
             String ouputfileFinal = null;
             if(!isDataFromRun && !shiftInputFile) {
@@ -77,7 +78,7 @@ public class DataModifier{
                     m_over_z = Double.valueOf(values[1]);
                     rt = Double.valueOf(values[2]);
                     charge = Integer.valueOf(values[3]);
-                    //m_over_z = m_over_z - (variations.get(exprt) * 1.e-6 * m_over_z);
+                    m_over_z = m_over_z - (variations.get(exprt) * 1.e-6 * m_over_z);
                     values[1] = String.valueOf(m_over_z);
 
                     if (experimentShift.equals("true")) {
@@ -101,6 +102,7 @@ public class DataModifier{
 
                     mhmminus.put(m_over_z, outputlineminus);
                     exprtset.add(exprt);
+                    exprimentcounts[exprt - 1]++;
                     count++;
                 }
                 ouputfileFinal =  outputfileDir + "/" +outputfile.substring(0,outputfile.indexOf(".")) + ".rt." + rt_rangeMin + "_" + rt_rangeMax + ".mz" + m_z_rangeMin + "_" + m_z_rangeMax + ".formatted.minus1.txt";
@@ -132,6 +134,7 @@ public class DataModifier{
                  //   mhmminus.put(m_over_z, outputlineminus);
                     temparraylist.add(outputlineminus);
                     exprtset.add(exprt);
+                    exprimentcounts[exprt - 1]++;
                     count++;
                 }
                 ouputfileFinal = datafile.replace(".txt",".shifted.unsorted.txt");
@@ -145,9 +148,9 @@ public class DataModifier{
                     rt = Double.valueOf(values[2]);
 
 
-                    if (experimentShift.equals("true")) {
-                        m_over_z = m_over_z - 2.1700e-6 * m_over_z * (experimentShifts.get(exprt)[0]);
-                        rt = rt - 3.13 * experimentShifts.get(exprt)[2];
+                    if (experimentShift.equals("true") && exprt == 14) {
+                        m_over_z = m_over_z - (2.1700e-6 * m_over_z * (-1.1223612409));
+                       // rt = rt + 1.451429232;
                     }
 
                     outputlineminus = values[0] + "\t" + m_over_z + '\t' + rt + '\t' +
@@ -159,9 +162,12 @@ public class DataModifier{
                     }else{
                         temparraylist.add(outputlineminus);
                     }
+                    exprtset.add(exprt);
+                    exprimentcounts[exprt - 1]++;
+
                     count++;
                 }
-                ouputfileFinal =  outputfileDir + "/" +outputfile.substring(0,outputfile.indexOf(".")) + ".rt." + rt_rangeMin + "_" + rt_rangeMax + ".mz" + m_z_rangeMin + "_" + m_z_rangeMax + ".formatted.shifted.minus1.txt";
+                ouputfileFinal =  outputfileDir + "/" +outputfile.substring(0,outputfile.indexOf(".")) + ".rt." + rt_rangeMin + "_" + rt_rangeMax + ".mz" + m_z_rangeMin + "_" + m_z_rangeMax + ".formatted.shifted.mzonly_exrt14r1.temp.minus1.txt";
 
             }
 
@@ -209,6 +215,10 @@ public class DataModifier{
             System.out.format("Number of data Points after filter: %d \n", count);
             System.out.format("Number of data Points after filter in formatted: %d \n", count2);
             System.out.format("Number of experiments in filtered data: %d \n", exprtset.size());
+            for (int i = 0; i < exprimentcounts.length; i++) {
+                int exprimentcount = exprimentcounts[i];
+                System.out.format("Number of poitns in : (%d) is: (%d) \n", i,exprimentcount);
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }

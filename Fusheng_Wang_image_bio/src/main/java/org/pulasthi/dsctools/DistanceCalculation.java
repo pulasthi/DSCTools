@@ -99,7 +99,7 @@ public class DistanceCalculation {
             max = ParallelOps.allReduceMax(max);
 
             short[] row = new short[numPoints];
-            long filePosition = ParallelOps.procRowStartOffset*numPoints*2;
+            long filePosition = ((long)ParallelOps.procRowStartOffset)*numPoints*2;
             for (int i = 0; i < ParallelOps.procRowCount; i++) {
                 ByteBuffer byteBuffer = ByteBuffer.allocate(numPoints*2);
                 byteBuffer.order(ByteOrder.BIG_ENDIAN);

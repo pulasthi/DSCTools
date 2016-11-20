@@ -102,7 +102,7 @@ public class DistanceCalculation {
 
 
             short[] row = new short[numPoints];
-            int filePosition = ParallelOps.procRowStartOffset*numPoints*2;
+            long filePosition = ParallelOps.procRowStartOffset*numPoints*2;
             for (int i = 0; i < ParallelOps.procRowCount; i++) {
                 ByteBuffer byteBuffer = ByteBuffer.allocate(numPoints*2);
                 byteBuffer.order(ByteOrder.BIG_ENDIAN);
@@ -112,7 +112,7 @@ public class DistanceCalculation {
                 }
                 byteBuffer.clear();
                 byteBuffer.asShortBuffer().put(row);
-                fc.write(byteBuffer,filePosition + i*numPoints*2);
+                fc.write(byteBuffer,(filePosition + i*numPoints*2));
             }
 
             fc.close();

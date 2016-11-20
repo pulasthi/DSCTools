@@ -100,18 +100,19 @@ public class DistanceCalculation {
 
             max = ParallelOps.allReduceMax(max);
 
-            ByteBuffer byteBuffer = ByteBuffer.allocate(numPoints*2);
-            byteBuffer.order(ByteOrder.BIG_ENDIAN);
-            ShortBuffer shortOutputBuffer = byteBuffer.asShortBuffer();
+
             short[] row = new short[numPoints];
             int filePosition = ParallelOps.procRowStartOffset*numPoints*2;
             for (int i = 0; i < ParallelOps.procRowCount; i++) {
+                ByteBuffer byteBuffer = ByteBuffer.allocate(numPoints*2);
+                byteBuffer.order(ByteOrder.BIG_ENDIAN);
+                ShortBuffer shortOutputBuffer = byteBuffer.asShortBuffer();
                 for (int j = 0; j < numPoints; j++) {
                     row[j] = (short)((localDistances[i][j]/max)*Short.MAX_VALUE);
                 }
                 byteBuffer.clear();
                 byteBuffer.asShortBuffer().put(row);
-                fc.write(byteBuffer,filePosition+i*numPoints*2);
+                fc.write(byteBuffer,filePosition + i*numPoints*2);
             }
 
             fc.close();

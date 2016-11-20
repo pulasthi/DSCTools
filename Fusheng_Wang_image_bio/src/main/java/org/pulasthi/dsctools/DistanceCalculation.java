@@ -112,6 +112,7 @@ public class DistanceCalculation {
                 }
                 byteBuffer.clear();
                 byteBuffer.asShortBuffer().put(row);
+                System.out.println("********************* :" + (filePosition + i*numPoints*2) + "********************\n");
                 fc.write(byteBuffer,(filePosition + i*numPoints*2));
             }
 

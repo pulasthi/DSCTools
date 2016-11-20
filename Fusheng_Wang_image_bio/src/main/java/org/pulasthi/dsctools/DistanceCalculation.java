@@ -109,7 +109,7 @@ public class DistanceCalculation {
                 }
                 byteBuffer.clear();
                 byteBuffer.asShortBuffer().put(row);
-                if(i%1000 == 0) Utils.printMessage("Writing to file calculation ......");
+                if(i%500 == 0) Utils.printMessage("Writing to file calculation ......");
                 fc.write(byteBuffer,(filePosition + ((long)i)*numPoints*2));
             }
 

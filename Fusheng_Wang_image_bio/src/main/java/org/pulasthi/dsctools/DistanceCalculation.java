@@ -50,6 +50,8 @@ public class DistanceCalculation {
             }
 
             //Calculate means and sd of features //TODO need to parallise
+            Utils.printMessage("Start calculating mean and sd");
+
             double[] means = new double[dimension];
             double[] sd = new double[dimension];
             double max = Double.MIN_VALUE;
@@ -69,8 +71,10 @@ public class DistanceCalculation {
             for (int i = 0; i < dimension; i++) {
                 sd[i] = Math.sqrt(sd[i]/numPoints);
             }
+            Utils.printMessage("End calculating mean and sd");
 
             //Update value with new normalized values
+            Utils.printMessage("Start calculating normalized data");
 
             for(int i = 0; i < numPoints; i++){
                 for (int j = 0; j < dimension; j++) {
@@ -78,6 +82,8 @@ public class DistanceCalculation {
                     points[i][j] = points[i][j]/sd[j];
                 }
             }
+
+            Utils.printMessage("End calculating normalized data");
 
             for (int i = 0; i < ParallelOps.procRowCount; i++) {
                 for (int j = 0; j < numPoints; j++) {
@@ -87,7 +93,10 @@ public class DistanceCalculation {
                         max = distance;
                     }
                 }
+                if(i%1000 == 0) Utils.printMessage("Distance calculation ......");
             }
+
+            Utils.printMessage("End Processing sd value of feature 0 :" + sd[0]);
 
             max = ParallelOps.allReduceMax(max);
 

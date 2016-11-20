@@ -26,6 +26,7 @@ public class DistanceCalculation {
         List<String> lines = new ArrayList<String>();
         try {
             ParallelOps.setupParallelism(args);
+            Utils.printMessage("Starting with " + ParallelOps.worldProcsCount + "Processes");
             String inputFile = args[0];
             String outputFile = args[3];
             int numPoints = Integer.valueOf(args[1]);
@@ -105,6 +106,7 @@ public class DistanceCalculation {
             }
 
             fc.close();
+            Utils.printMessage("End Processing sd value of feature 0 :" + sd[0]);
             ParallelOps.tearDownParallelism();
 
 

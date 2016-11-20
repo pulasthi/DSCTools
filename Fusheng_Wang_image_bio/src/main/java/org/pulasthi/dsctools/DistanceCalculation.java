@@ -116,7 +116,8 @@ public class DistanceCalculation {
             }
 
             fc.close();
-            Utils.printMessage("End Processing sd value of feature 0 :" + sd[0]);
+//            Utils.printMessage("End Processing sd value of feature 0 :" + sd[0]);
+            System.out.println(ParallelOps.worldProcRank);
             ParallelOps.tearDownParallelism();
 
 

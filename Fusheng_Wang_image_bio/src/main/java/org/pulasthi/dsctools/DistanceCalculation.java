@@ -96,10 +96,7 @@ public class DistanceCalculation {
                 if(i%1000 == 0) Utils.printMessage("Distance calculation ......");
             }
 
-            Utils.printMessage("End Processing sd value of feature 0 :" + sd[0]);
-
             max = ParallelOps.allReduceMax(max);
-
 
             short[] row = new short[numPoints];
             long filePosition = ParallelOps.procRowStartOffset*numPoints*2;
@@ -112,7 +109,7 @@ public class DistanceCalculation {
                 }
                 byteBuffer.clear();
                 byteBuffer.asShortBuffer().put(row);
-                System.out.println("********************* :" + (filePosition + ((long)i)*numPoints*2) + "********************\n");
+                if(i%1000 == 0) Utils.printMessage("Writing to file calculation ......");
                 fc.write(byteBuffer,(filePosition + ((long)i)*numPoints*2));
             }
 

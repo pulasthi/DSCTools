@@ -79,7 +79,7 @@ public class DistanceCalculation {
             for(int i = 0; i < numPoints; i++){
                 for (int j = 0; j < dimension; j++) {
                     if(sd[j] == 0) continue;
-                    points[i][j] = points[i][j]/sd[j];
+                    points[i][j] = (points[i][j] - means[j])/sd[j];
                 }
             }
 
@@ -103,7 +103,6 @@ public class DistanceCalculation {
             for (int i = 0; i < ParallelOps.procRowCount; i++) {
                 ByteBuffer byteBuffer = ByteBuffer.allocate(numPoints*2);
                 byteBuffer.order(ByteOrder.BIG_ENDIAN);
-                ShortBuffer shortOutputBuffer = byteBuffer.asShortBuffer();
                 for (int j = 0; j < numPoints; j++) {
                     row[j] = (short)((localDistances[i][j]/max)*Short.MAX_VALUE);
                 }
@@ -114,7 +113,6 @@ public class DistanceCalculation {
             }
 
             fc.close();
-//            Utils.printMessage("End Processing sd value of feature 0 :" + sd[0]);
             System.out.println(ParallelOps.worldProcRank);
             ParallelOps.tearDownParallelism();
 

@@ -55,6 +55,8 @@ public class DistanceCalculation {
             double[] means = new double[dimension];
             double[] sd = new double[dimension];
             double max = Double.MIN_VALUE;
+            double disMean = 0;
+            double disSd = 0;
             for(int i = 0; i < numPoints; i++){
                 for (int j = 0; j < dimension; j++) {
                     means[j] += points[i][j];
@@ -126,6 +128,7 @@ public class DistanceCalculation {
                     for (int j = 0; j < numPoints; j++) {
                         double distance = calculateEuclideanDistance(points[i + ParallelOps.procRowStartOffset],points[j],dimension);
                         localDistances[i][j] = distance;
+                        disMean += distance;
                         if(distance > max){
                             max = distance;
                         }
@@ -136,6 +139,25 @@ public class DistanceCalculation {
 
 
                 max = ParallelOps.allReduceMax(max);
+                disMean = ParallelOps.allReduce(disMean)/(numPoints*numPoints);
+                Utils.printMessage("Distance mean : " + disMean);
+
+                for (int i = 0; i < ParallelOps.procRowCount; i++) {
+                    for (int j = 0; j < numPoints; j++) {
+                        disSd += (localDistances[i][j] - disMean)*(localDistances[i][j] - disMean);
+                    }
+                }
+
+                disSd = Math.sqrt(ParallelOps.allReduce(disSd)/(numPoints*numPoints));
+                Utils.printMessage("Distance SD : " + disSd);
+
+
+                Utils.printMessage("Replacing distance larger than 3*SD with 3*SD");
+                for (int i = 0; i < ParallelOps.procRowCount; i++) {
+                    for (int j = 0; j < numPoints; j++) {
+                        if(localDistances[i][j] > (disMean + 3*disSd)) localDistances[i][j] = (disMean + 3*disSd);
+                    }
+                }
                 short[] row = new short[numPoints];
                 long filePosition = ((long) ParallelOps.procRowStartOffset) * numPoints * 2;
                 for (int i = 0; i < ParallelOps.procRowCount; i++) {

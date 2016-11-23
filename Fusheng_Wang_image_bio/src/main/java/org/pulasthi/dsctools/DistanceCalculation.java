@@ -129,16 +129,12 @@ public class DistanceCalculation {
                         double distance = calculateEuclideanDistance(points[i + ParallelOps.procRowStartOffset],points[j],dimension);
                         localDistances[i][j] = distance;
                         disMean += distance;
-                        if(distance > max){
-                            max = distance;
-                        }
                     }
                     if(i%1000 == 0) Utils.printMessage("Distance calculation ......");
                 }
 
 
 
-                max = ParallelOps.allReduceMax(max);
                 disMean = ParallelOps.allReduce(disMean)/(numPoints*numPoints);
                 Utils.printMessage("Distance mean : " + disMean);
 
@@ -156,8 +152,14 @@ public class DistanceCalculation {
                 for (int i = 0; i < ParallelOps.procRowCount; i++) {
                     for (int j = 0; j < numPoints; j++) {
                         if(localDistances[i][j] > (disMean + 3*disSd)) localDistances[i][j] = (disMean + 3*disSd);
+                        if(localDistances[i][j] > max){
+                            max = localDistances[i][j];
+                        }
                     }
                 }
+                max = ParallelOps.allReduceMax(max);
+                Utils.printMessage("Done Replacing distance larger than 3*SD with 3*SD, Max is : " + max);
+
                 short[] row = new short[numPoints];
                 long filePosition = ((long) ParallelOps.procRowStartOffset) * numPoints * 2;
                 for (int i = 0; i < ParallelOps.procRowCount; i++) {

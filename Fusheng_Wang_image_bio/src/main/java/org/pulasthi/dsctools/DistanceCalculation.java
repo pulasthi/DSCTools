@@ -112,6 +112,10 @@ public class DistanceCalculation {
                 percentiles.append(" " + localDistances[(int)((ParallelOps.procRowCount*numPoints/100)*99.5)]);
                 percentiles.append(" " + localDistances[(int)((ParallelOps.procRowCount*numPoints/100)*99.8)]);
                 percentiles.append(" " + localDistances[(int)((ParallelOps.procRowCount*numPoints/100)*99.9)]);
+                percentiles.append(" " + localDistances[ParallelOps.procRowCount*numPoints - 10000]);
+                percentiles.append(" " + localDistances[ParallelOps.procRowCount*numPoints - 1000]);
+                percentiles.append(" " + localDistances[ParallelOps.procRowCount*numPoints - 100]);
+                percentiles.append(" " + localDistances[ParallelOps.procRowCount*numPoints - 10]);
                 percentiles.append(" " + localDistances[ParallelOps.procRowCount*numPoints - 1]);
 
                 System.out.println("**********************************"+ percentiles + "**********************************");

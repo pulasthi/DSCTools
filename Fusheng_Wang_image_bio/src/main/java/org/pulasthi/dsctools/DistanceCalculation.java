@@ -108,7 +108,7 @@ public class DistanceCalculation {
 
                 }
                 percentiles.append(" " + localDistances[(ParallelOps.procRowCount*numPoints/100)*99]);
-                percentiles.append(" " + localDistances[ParallelOps.procRowCount*numPoints]);
+                percentiles.append(" " + localDistances[ParallelOps.procRowCount*numPoints - 1]);
 
                 System.out.println("**********************************"+ percentiles + "**********************************");
 

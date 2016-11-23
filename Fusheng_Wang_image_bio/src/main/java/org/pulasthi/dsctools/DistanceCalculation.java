@@ -100,14 +100,18 @@ public class DistanceCalculation {
                 }
 
                 Arrays.sort(localDistances);
-                StringBuilder percentiles = new StringBuilder("Rank : " + ParallelOps.worldProcRank);
+                StringBuilder percentiles = new StringBuilder("Rank : " + ParallelOps.worldProcRank + " ");
                 percentiles.append(localDistances[ParallelOps.procRowCount*numPoints/100]);
+                percentiles.append(localDistances[0]);
                 for (int i = 5; i < 100 ; i += 5) {
                     double dist = localDistances[(ParallelOps.procRowCount*numPoints/100)*i];
                     percentiles.append(" " + dist);
 
                 }
                 percentiles.append(" " + localDistances[(ParallelOps.procRowCount*numPoints/100)*99]);
+                percentiles.append(" " + localDistances[(int)((ParallelOps.procRowCount*numPoints/100)*99.5)]);
+                percentiles.append(" " + localDistances[(int)((ParallelOps.procRowCount*numPoints/100)*99.8)]);
+                percentiles.append(" " + localDistances[(int)((ParallelOps.procRowCount*numPoints/100)*99.9)]);
                 percentiles.append(" " + localDistances[ParallelOps.procRowCount*numPoints - 1]);
 
                 System.out.println("**********************************"+ percentiles + "**********************************");

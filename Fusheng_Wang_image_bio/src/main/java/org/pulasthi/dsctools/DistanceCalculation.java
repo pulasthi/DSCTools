@@ -31,13 +31,13 @@ public class DistanceCalculation {
             String outputFile = args[3];
             int numPoints = Integer.valueOf(args[1]);
             int dimension = Integer.valueOf(args[2]);
+            boolean stats = (args.length == 5) ? Boolean.valueOf(args[4]) : false;
             BufferedReader br = Files.newBufferedReader(Paths.get(inputFile));
             FileOutputStream fos = new FileOutputStream(outputFile);
             FileChannel fc = fos.getChannel();
 
             ParallelOps.setParallelDecomposition(numPoints,dimension);
             double[][] points = new double[numPoints][dimension];
-            double[][] localDistances = new double[ParallelOps.procRowCount][numPoints];
 
             String line = null;
             int count = 0;
@@ -85,34 +85,64 @@ public class DistanceCalculation {
 
             Utils.printMessage("End calculating normalized data");
 
-            for (int i = 0; i < ParallelOps.procRowCount; i++) {
-                for (int j = 0; j < numPoints; j++) {
-                    double distance = calculateEuclideanDistance(points[i + ParallelOps.procRowStartOffset],points[j],dimension);
-                    localDistances[i][j] = distance;
-                    if(distance > max){
-                        max = distance;
+
+            if(stats){
+                double[] localDistances = new double[ParallelOps.procRowCount*numPoints];
+                for (int i = 0; i < ParallelOps.procRowCount; i++) {
+                    for (int j = 0; j < numPoints; j++) {
+                        double distance = calculateEuclideanDistance(points[i + ParallelOps.procRowStartOffset],points[j],dimension);
+                        localDistances[i*numPoints + j] = distance;
+                        if(distance > max){
+                            max = distance;
+                        }
                     }
+                    if(i%1000 == 0) Utils.printMessage("Distance calculation ......");
                 }
-                if(i%1000 == 0) Utils.printMessage("Distance calculation ......");
-            }
 
-            max = ParallelOps.allReduceMax(max);
+                Arrays.sort(localDistances);
+                StringBuilder percentiles = new StringBuilder("Rank : " + ParallelOps.worldProcRank);
+                percentiles.append(" 1% : [" + localDistances[ParallelOps.procRowCount*numPoints/100]);
+                for (int i = 5; i < 100 ; i += 5) {
+                    double localDistance = localDistances[ParallelOps.procRowCount*numPoints*i/100];
+                    percentiles.append("] " + i + "% : [" + localDistances[ParallelOps.procRowCount*numPoints*99/100] + "]");
 
-            short[] row = new short[numPoints];
-            long filePosition = ((long)ParallelOps.procRowStartOffset)*numPoints*2;
-            for (int i = 0; i < ParallelOps.procRowCount; i++) {
-                ByteBuffer byteBuffer = ByteBuffer.allocate(numPoints*2);
-                byteBuffer.order(ByteOrder.BIG_ENDIAN);
-                for (int j = 0; j < numPoints; j++) {
-                    row[j] = (short)((localDistances[i][j]/max)*Short.MAX_VALUE);
                 }
-                byteBuffer.clear();
-                byteBuffer.asShortBuffer().put(row);
-                if(i%500 == 0) Utils.printMessage("Writing to file calculation ......");
-                fc.write(byteBuffer,(filePosition + ((long)i)*numPoints*2));
-            }
+                percentiles.append("] 99% : [" + localDistances[ParallelOps.procRowCount*numPoints*99/100] + "]");
 
-            fc.close();
+                System.out.println(percentiles);
+
+            }else {
+                double[][] localDistances = new double[ParallelOps.procRowCount][numPoints];
+                for (int i = 0; i < ParallelOps.procRowCount; i++) {
+                    for (int j = 0; j < numPoints; j++) {
+                        double distance = calculateEuclideanDistance(points[i + ParallelOps.procRowStartOffset],points[j],dimension);
+                        localDistances[i][j] = distance;
+                        if(distance > max){
+                            max = distance;
+                        }
+                    }
+                    if(i%1000 == 0) Utils.printMessage("Distance calculation ......");
+                }
+
+
+
+                max = ParallelOps.allReduceMax(max);
+                short[] row = new short[numPoints];
+                long filePosition = ((long) ParallelOps.procRowStartOffset) * numPoints * 2;
+                for (int i = 0; i < ParallelOps.procRowCount; i++) {
+                    ByteBuffer byteBuffer = ByteBuffer.allocate(numPoints * 2);
+                    byteBuffer.order(ByteOrder.BIG_ENDIAN);
+                    for (int j = 0; j < numPoints; j++) {
+                        row[j] = (short) ((localDistances[i][j] / max) * Short.MAX_VALUE);
+                    }
+                    byteBuffer.clear();
+                    byteBuffer.asShortBuffer().put(row);
+                    if (i % 500 == 0) Utils.printMessage("Writing to file calculation ......");
+                    fc.write(byteBuffer, (filePosition + ((long) i) * numPoints * 2));
+                }
+
+                fc.close();
+            }
             System.out.println(ParallelOps.worldProcRank);
             ParallelOps.tearDownParallelism();
 

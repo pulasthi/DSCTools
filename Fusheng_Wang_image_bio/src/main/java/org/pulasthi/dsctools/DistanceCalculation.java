@@ -89,38 +89,38 @@ public class DistanceCalculation {
 
 
             if(stats){
-                double[] localDistances = new double[ParallelOps.procRowCount*numPoints];
-                for (int i = 0; i < ParallelOps.procRowCount; i++) {
-                    for (int j = 0; j < numPoints; j++) {
-                        double distance = calculateEuclideanDistance(points[i + ParallelOps.procRowStartOffset],points[j],dimension);
-                        localDistances[i*numPoints + j] = distance;
-                        if(distance > max){
-                            max = distance;
-                        }
-                    }
-                    if(i%1000 == 0) Utils.printMessage("Distance calculation ......");
-                }
-
-                Arrays.sort(localDistances);
-                StringBuilder percentiles = new StringBuilder("Rank : " + ParallelOps.worldProcRank + " ");
-                percentiles.append(localDistances[ParallelOps.procRowCount*numPoints/100]);
-                percentiles.append(localDistances[0]);
-                for (int i = 5; i < 100 ; i += 5) {
-                    double dist = localDistances[(ParallelOps.procRowCount*numPoints/100)*i];
-                    percentiles.append(" " + dist);
-
-                }
-                percentiles.append(" " + localDistances[(ParallelOps.procRowCount*numPoints/100)*99]);
-                percentiles.append(" " + localDistances[(int)((ParallelOps.procRowCount*numPoints/100)*99.5)]);
-                percentiles.append(" " + localDistances[(int)((ParallelOps.procRowCount*numPoints/100)*99.8)]);
-                percentiles.append(" " + localDistances[(int)((ParallelOps.procRowCount*numPoints/100)*99.9)]);
-                percentiles.append(" " + localDistances[ParallelOps.procRowCount*numPoints - 10000]);
-                percentiles.append(" " + localDistances[ParallelOps.procRowCount*numPoints - 1000]);
-                percentiles.append(" " + localDistances[ParallelOps.procRowCount*numPoints - 100]);
-                percentiles.append(" " + localDistances[ParallelOps.procRowCount*numPoints - 10]);
-                percentiles.append(" " + localDistances[ParallelOps.procRowCount*numPoints - 1]);
-
-                System.out.println("**********************************"+ percentiles + "**********************************");
+//                double[] localDistances = new double[ParallelOps.procRowCount*numPoints];
+//                for (int i = 0; i < ParallelOps.procRowCount; i++) {
+//                    for (int j = 0; j < numPoints; j++) {
+//                        double distance = calculateEuclideanDistance(points[i + ParallelOps.procRowStartOffset],points[j],dimension);
+//                        localDistances[i*numPoints + j] = distance;
+//                        if(distance > max){
+//                            max = distance;
+//                        }
+//                    }
+//                    if(i%1000 == 0) Utils.printMessage("Distance calculation ......");
+//                }
+//
+//                Arrays.sort(localDistances);
+//                StringBuilder percentiles = new StringBuilder("Rank : " + ParallelOps.worldProcRank + " ");
+//                percentiles.append(localDistances[ParallelOps.procRowCount*numPoints/100]);
+//                percentiles.append(localDistances[0]);
+//                for (int i = 5; i < 100 ; i += 5) {
+//                    double dist = localDistances[(ParallelOps.procRowCount*numPoints/100)*i];
+//                    percentiles.append(" " + dist);
+//
+//                }
+//                percentiles.append(" " + localDistances[(ParallelOps.procRowCount*numPoints/100)*99]);
+//                percentiles.append(" " + localDistances[(int)((ParallelOps.procRowCount*numPoints/100)*99.5)]);
+//                percentiles.append(" " + localDistances[(int)((ParallelOps.procRowCount*numPoints/100)*99.8)]);
+//                percentiles.append(" " + localDistances[(int)((ParallelOps.procRowCount*numPoints/100)*99.9)]);
+//                percentiles.append(" " + localDistances[ParallelOps.procRowCount*numPoints - 10000]);
+//                percentiles.append(" " + localDistances[ParallelOps.procRowCount*numPoints - 1000]);
+//                percentiles.append(" " + localDistances[ParallelOps.procRowCount*numPoints - 100]);
+//                percentiles.append(" " + localDistances[ParallelOps.procRowCount*numPoints - 10]);
+//                percentiles.append(" " + localDistances[ParallelOps.procRowCount*numPoints - 1]);
+//
+//                System.out.println("**********************************"+ percentiles + "**********************************");
 
             }else {
                 double[][] localDistances = new double[ParallelOps.procRowCount][numPoints];
@@ -135,7 +135,7 @@ public class DistanceCalculation {
 
 
 
-                disMean = ParallelOps.allReduce(disMean)/(numPoints*numPoints);
+                disMean = ParallelOps.allReduce(disMean)/(((double)numPoints)*numPoints);
                 Utils.printMessage("Distance mean : " + disMean);
 
                 for (int i = 0; i < ParallelOps.procRowCount; i++) {
@@ -144,7 +144,7 @@ public class DistanceCalculation {
                     }
                 }
 
-                disSd = Math.sqrt(ParallelOps.allReduce(disSd)/(numPoints*numPoints));
+                disSd = Math.sqrt(ParallelOps.allReduce(disSd)/(((double)numPoints)*numPoints));
                 Utils.printMessage("Distance SD : " + disSd);
 
 
@@ -158,7 +158,7 @@ public class DistanceCalculation {
                     }
                 }
                 max = ParallelOps.allReduceMax(max);
-                Utils.printMessage("Done Replacing distance larger than 3*SD with 3*SD, Max is : " + max);
+                Utils.printMessage("Done Replacing distance larger than 3*SD with 3*SD, Max is : " + max    );
 
                 short[] row = new short[numPoints];
                 long filePosition = ((long) ParallelOps.procRowStartOffset) * numPoints * 2;

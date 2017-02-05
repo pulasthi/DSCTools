@@ -88,6 +88,7 @@ public class DistanceCalculation {
             Utils.printMessage("End calculating normalized data");
 
 
+            //Used for initial satats calculations
             if(stats){
 //                double[] localDistances = new double[ParallelOps.procRowCount*numPoints];
 //                for (int i = 0; i < ParallelOps.procRowCount; i++) {

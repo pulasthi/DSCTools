@@ -28,7 +28,7 @@ public class SingleFileGeneration {
 
         }
 
-        try{
+        try{ 
             PrintWriter printWriter = new PrintWriter(new FileWriter("/home/pulasthi/work/FushengWang/" + "All_images_20K_each" + ".data"));
             PrintWriter printWriterIndexes = new PrintWriter(new FileWriter("/home/pulasthi/work/FushengWang/" + "All_images_20K_each" + "_indexInfo.data"));
             int counterIndex = 0;

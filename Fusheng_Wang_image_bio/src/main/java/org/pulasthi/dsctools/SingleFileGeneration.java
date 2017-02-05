@@ -15,9 +15,17 @@ public class SingleFileGeneration {
         ArrayList<String> lines = new ArrayList<String>();
         int numFeature = 96;
         int numberofRows = 0;
+        String dataFolderName = args[0];
+        String imageOrAll = args[1];
+        String outputFolder = args[2];
+        String outputFileName = args[3];
+        boolean isAll = false;
 
-        File dataFolder = new File("/home/pulasthi/work/FushengWang/fox");
+        File dataFolder = new File(dataFolderName);
         String files[] = dataFolder.list();
+        if(imageOrAll.equalsIgnoreCase("all")){
+            isAll = true;
+        }
 
         for(String fileName : files){
             String group = fileName.substring(0,fileName.lastIndexOf("_mpp"));
@@ -28,9 +36,9 @@ public class SingleFileGeneration {
 
         }
 
-        try{ 
-            PrintWriter printWriter = new PrintWriter(new FileWriter("/home/pulasthi/work/FushengWang/" + "All_images_20K_each" + ".data"));
-            PrintWriter printWriterIndexes = new PrintWriter(new FileWriter("/home/pulasthi/work/FushengWang/" + "All_images_20K_each" + "_indexInfo.data"));
+        try{
+            PrintWriter printWriter = new PrintWriter(new FileWriter(outputFolder + "/" + outputFileName + ".data"));
+            PrintWriter printWriterIndexes = new PrintWriter(new FileWriter(outputFolder + "/" + outputFileName + "_indexInfo.data"));
             int counterIndex = 0;
             int counterIndexall = 0;
             Iterator<String> iter = imageGroupMappings.keySet().iterator();
@@ -43,6 +51,8 @@ public class SingleFileGeneration {
             int cluskey = 0;
             while (iter.hasNext()){
                 key = iter.next();
+                //Prob is assigned based on the number of rows that are in each images data files. To make sure that
+                //a similar amount of data points are selected from each file regardless of there size
                 if(key.equals("TCGA-55-6543-01Z-00-DX1.08806fe0-84d3-4fd6-8746-6cf557241958")) {prob = 0.047882974; cluskey = 0;};
                 if(key.equals("TCGA-86-6562-01Z-00-DX1.5dea3015-e606-4837-9f99-ac14f0aa091b")) {prob = 0.041587218; cluskey = 1;};
                 if(key.equals("TCGA-55-6972-01Z-00-DX1.0b441ad0-c30f-4f63-849a-36c98d6e2d3b")) {prob = 0.208774805; cluskey = 2;};
@@ -55,18 +65,23 @@ public class SingleFileGeneration {
                 if(key.equals("TCGA-55-8087-01Z-00-DX1.548f2800-8caf-4c0e-a7b5-6d3d28315d9c")) {prob = 0.066891422; cluskey = 9;};
                 if(key.equals("TCGA-55-7995-01Z-00-DX1.fef24d04-35a0-4f57-8f51-7ad602a78871")) {prob = 0.070487314; cluskey = 10;};
 
-                //if(!key.equals("TCGA-83-5908-01Z-00-DX1.381c8f82-61a0-4e9d-982d-1ad0af7bead9")) continue;
+                if(!isAll && !key.equals(imageOrAll)) continue;
                 values = imageGroupMappings.get(key);
 
                 for (String file: values){
                     reader = Files.newBufferedReader(Paths.get(dataFolder.getAbsolutePath() + "/" + file));
 
-                    //read heaer line
+                    //read here line
                     line = reader.readLine();
                     while((line = reader.readLine()) != null){
                       //  lines.add(counterIndex, line);
 
-                        if(random.nextDouble() < prob ){ // get around prob of data
+                        if(isAll && random.nextDouble() < prob ){ // get around prob of data
+                            printWriter.println(line.substring(0,line.lastIndexOf("[")-1));
+                            printWriterIndexes.println(""+counterIndexall + "," + file + "," + cluskey);
+                            counterIndex++;
+                            counterIndexall++;
+                        }else if(!isAll){
                             printWriter.println(line.substring(0,line.lastIndexOf("[")-1));
                             printWriterIndexes.println(""+counterIndexall + "," + file + "," + cluskey);
                             counterIndex++;

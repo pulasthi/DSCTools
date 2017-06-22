@@ -33,16 +33,17 @@ public class ClusterOutlierExtractor {
             String clusterFile = args[0];
             String pointsFile = args[1];
             String outputFile = args[2];
-            double defaultCutOff = Double.parseDouble(args[3]);
-            int numPoints = Integer.parseInt(args[4]);
-            int numClusters = Integer.parseInt(args[5]);
+            String outputFilePlot = args[3];
+            double defaultCutOff = Double.parseDouble(args[4]);
+            int numPoints = Integer.parseInt(args[5]);
+            int numClusters = Integer.parseInt(args[6]);
             points = new double[numPoints][3];
             means = new double[numClusters][3];
             clusters = new int[numPoints];
             cutoffsFinal = new double[numClusters];
             clusterSigmas = new double[numClusters];
-            if(args.length >= 7){
-                for (int i = 6; i < args.length; i++) {
+            if(args.length >= 8){
+                for (int i = 7; i < args.length; i++) {
                     String line = args[i];
                     String[] splits = line.split("-");
                     cutOffs.put(Integer.parseInt(splits[0]), Double.parseDouble(splits[1]));

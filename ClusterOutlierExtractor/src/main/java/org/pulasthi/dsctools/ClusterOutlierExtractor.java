@@ -82,7 +82,7 @@ public class ClusterOutlierExtractor {
             System.out.println("Size of dust cluster: " + dustPoints.size());
 //            System.out.println("Length of group 2 dust: " + dustPoints[1].size());
             String file = outputFile;
-            String fileMDS = (new File(file)).getParent() + "/Plot_File_" + (new File(file)).getName();
+            String fileMDS = outputFilePlot;
             WriteDustResults(file,numPoints,clusters,numClusters,dustPoints);
             WriteDustResultsWithMDS(fileMDS,numPoints,points,clusters,numClusters,dustPoints);
 

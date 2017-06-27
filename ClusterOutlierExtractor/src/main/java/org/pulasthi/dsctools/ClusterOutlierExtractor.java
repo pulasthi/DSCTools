@@ -18,6 +18,7 @@ import java.util.regex.Pattern;
  * Created by pulasthi on 6/20/17.
  */
 public class ClusterOutlierExtractor {
+    static final int dustClusterId = 100000;
 
     public static void main(String[] args) {
         Map<Integer, Double> cutOffs = new HashMap<Integer, Double>();
@@ -33,6 +34,7 @@ public class ClusterOutlierExtractor {
             String clusterFile = args[0];
             String pointsFile = args[1];
             String outputFile = args[2];
+            String outputFileWithoutDust = args[2];
             String outputFilePlot = args[3];
             double defaultCutOff = Double.parseDouble(args[4]);
             int numPoints = Integer.parseInt(args[5]);
@@ -67,6 +69,10 @@ public class ClusterOutlierExtractor {
             for (int pointIndex = 0; pointIndex < numPoints; pointIndex++) {
                 int cluster = clusters[pointIndex];
 
+                if(cluster == dustClusterId){
+                    dustPoints.add(pointIndex);
+                    continue;
+                }
                 double cutOff = clusterSigmas[cluster] * cutoffsFinal[cluster];
 
                 double tmp0 = points[pointIndex][0] - means[cluster][0];
@@ -96,7 +102,7 @@ public class ClusterOutlierExtractor {
 
         Path filePath = Paths.get(file);
         OpenOption mode = StandardOpenOption.CREATE;
-        int dustClusterIndex = numClusters + 1;
+        int dustClusterIndex = dustClusterId;
 
         try (PrintWriter writer = new PrintWriter(Files.newBufferedWriter(filePath, Charset.defaultCharset(), mode),
                 true)) {
@@ -121,7 +127,7 @@ public class ClusterOutlierExtractor {
 
         Path filePath = Paths.get(file);
         OpenOption mode = StandardOpenOption.CREATE;
-        int dustClusterIndex = numClusters;
+        int dustClusterIndex = dustClusterId;
 
         try (PrintWriter writer = new PrintWriter(Files.newBufferedWriter(filePath, Charset.defaultCharset(), mode),
                 true)) {

@@ -239,7 +239,7 @@ public class ClusterOutlierExtractor {
             double[] point = points[i];
             int cluster = clusters[i];
             if(!meansmap.containsKey(cluster)){
-                Double[] temp = new Double[3];
+                Double[] temp = {0.0,0.0,0.0};
                 meansmap.put(cluster,temp);
                 clusterCountsMap.put(cluster,0);
             }

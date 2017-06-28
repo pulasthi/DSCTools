@@ -48,7 +48,7 @@ public class ClusterOutlierExtractor {
             readPoints(pointsFile,points);
             HashMap<Integer, Double[]> meansmap = new HashMap<Integer, Double[]>();
             HashMap<Integer, Double> clusterSigmasmap = new HashMap<Integer, Double>();
-
+            readClusters(clusterFile,clusters);
             calculateMeans(points,clusters,meansmap);
             calculateSigmaValues(points, meansmap, clusters, numPoints, clusterSigmasmap);
 

@@ -40,10 +40,7 @@ public class ClusterOutlierExtractor {
             int numPoints = Integer.parseInt(args[5]);
             int numClusters = Integer.parseInt(args[6]);
             points = new double[numPoints][3];
-            means = new double[numClusters][3];
             clusters = new int[numPoints];
-            cutoffsFinal = new double[numClusters];
-            clusterSigmas = new double[numClusters];
             if(args.length >= 8){
                 for (int i = 7; i < args.length; i++) {
                     String line = args[i];
@@ -53,7 +50,11 @@ public class ClusterOutlierExtractor {
             }
 
             readPoints(pointsFile,points);
-            readClusters(clusterFile,clusters);
+            numClusters = readClusters(clusterFile,clusters);
+            means = new double[numClusters][3];
+            cutoffsFinal = new double[numClusters];
+            clusterSigmas = new double[numClusters];
+
             calculateMeans(points,clusters,means);
             calculateSigmaValues(points, means, clusters, numPoints, numClusters, clusterSigmas);
 
@@ -198,11 +199,11 @@ public class ClusterOutlierExtractor {
         }
     }
 
-    public static void readClusters(String fname, int[] clusters) throws IOException{
+    public static int readClusters(String fname, int[] clusters) throws IOException{
         if (Strings.isNullOrEmpty(fname)) {
             throw new IOException("File name not specified");
         }
-
+        HashSet tempclustervount = new HashSet();
         try (BufferedReader br = Files.newBufferedReader(Paths.get(fname), Charset.defaultCharset())) {
             String line;
             int count = 0;
@@ -215,12 +216,14 @@ public class ClusterOutlierExtractor {
                     String[] splits = pattern.split(line.trim());
                     int index = Integer.parseInt(splits[0]);
                     clusters[index] = Integer.parseInt(splits[1]);
+                    tempclustervount.add(Integer.parseInt(splits[1]));
                     count++;
                 }
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
+        return tempclustervount.size();
     }
 
     public static void calculateMeans(double[][] points, int[] clusters, double[][] means){

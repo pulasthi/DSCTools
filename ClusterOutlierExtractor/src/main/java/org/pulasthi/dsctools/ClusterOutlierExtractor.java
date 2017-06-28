@@ -35,7 +35,6 @@ public class ClusterOutlierExtractor {
             String outputFilePlot = args[3];
             double defaultCutOff = Double.parseDouble(args[4]);
             int numPoints = Integer.parseInt(args[5]);
-            int numClusters = Integer.parseInt(args[6]);
             points = new double[numPoints][3];
             clusters = new int[numPoints];
             if(args.length >= 8){
@@ -47,12 +46,11 @@ public class ClusterOutlierExtractor {
             }
 
             readPoints(pointsFile,points);
-            numClusters = readClusters(clusterFile,clusters);
             HashMap<Integer, Double[]> meansmap = new HashMap<Integer, Double[]>();
             HashMap<Integer, Double> clusterSigmasmap = new HashMap<Integer, Double>();
 
             calculateMeans(points,clusters,meansmap);
-            calculateSigmaValues(points, meansmap, clusters, numPoints, numClusters, clusterSigmasmap);
+            calculateSigmaValues(points, meansmap, clusters, numPoints, clusterSigmasmap);
 
 //            for (int i = 0; i < numClusters; i++) {
 //                if(cutOffs.containsKey(i)){
@@ -93,8 +91,8 @@ public class ClusterOutlierExtractor {
 //            System.out.println("Length of group 2 dust: " + dustPoints[1].size());
             String file = outputFile;
             String fileMDS = outputFilePlot;
-            WriteDustResults(file,numPoints,clusters,numClusters,dustPoints);
-            WriteDustResultsWithMDS(fileMDS,numPoints,points,clusters,numClusters,dustPoints);
+            WriteDustResults(file,numPoints,clusters,dustPoints);
+            WriteDustResultsWithMDS(fileMDS,numPoints,points,clusters,dustPoints);
 
         }catch (IOException e){
             e.printStackTrace();
@@ -102,7 +100,7 @@ public class ClusterOutlierExtractor {
     }
 
     // Write cluster results with dust cluster to file
-    public static void WriteDustResults(String file,int numPoints, int[] clusters, int numClusters, HashSet dustPoints){
+    public static void WriteDustResults(String file,int numPoints, int[] clusters, HashSet dustPoints){
 
         Path filePath = Paths.get(file);
         OpenOption mode = StandardOpenOption.CREATE;
@@ -127,7 +125,7 @@ public class ClusterOutlierExtractor {
     }
 
     // Write cluster results with dust cluster to file with MDS data
-    public static void WriteDustResultsWithMDS(String file,int numPoints, double[][] points, int[] clusters, int numClusters, HashSet dustPoints){
+    public static void WriteDustResultsWithMDS(String file,int numPoints, double[][] points, int[] clusters, HashSet dustPoints){
 
         Path filePath = Paths.get(file);
         OpenOption mode = StandardOpenOption.CREATE;
@@ -151,7 +149,7 @@ public class ClusterOutlierExtractor {
 
     }
 
-    private static void calculateSigmaValues(double[][] points, HashMap<Integer, Double[]> means, int[] clusters, int numPoints, int numClusters, HashMap<Integer, Double> clusterSigmas) {
+    private static void calculateSigmaValues(double[][] points, HashMap<Integer, Double[]> means, int[] clusters, int numPoints, HashMap<Integer, Double> clusterSigmas) {
         // calculate sigma using ecludian distance for each group
         HashMap<Integer, Integer> clusterCountsMap = new HashMap<Integer, Integer>();
 
@@ -169,12 +167,8 @@ public class ClusterOutlierExtractor {
             clusterSigmas.put(group,clusterSigmas.get(group) + distance);
             clusterCountsMap.put(group,clusterCountsMap.get(group) + 1);
         }
-
-        for(int group = 0; group < numClusters; group++) {
-            clusterSigmas.put(group,clusterSigmas.get(group)/ clusterCountsMap.get(group) );
-           // double cutOff = clusterSigmas[group] * Program.config.DustClusterCutoffMultiplier;
-            //System.out.println( "Cut Off Value for group " + group + " is  (" + FindGroupMDSCoG[group][0].Totalmean + "," + FindGroupMDSCoG[group][1].Totalmean + "," + FindGroupMDSCoG[group][2].Totalmean + ")");
-            //System.out.println("Mean for group " + group + " is " + cutOff);
+        for (Integer key : clusterSigmas.keySet()) {
+            clusterSigmas.put(key,clusterSigmas.get(key)/ clusterCountsMap.get(key) );
         }
 
     }

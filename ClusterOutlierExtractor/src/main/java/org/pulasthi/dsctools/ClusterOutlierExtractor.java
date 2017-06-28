@@ -22,11 +22,8 @@ public class ClusterOutlierExtractor {
 
     public static void main(String[] args) {
         Map<Integer, Double> cutOffs = new HashMap<Integer, Double>();
-        double[] cutoffsFinal;
         double[][] points;
-        double[][] means;
         int[] clusters;
-        double clusterSigmas[];
         HashSet dustPoints = new HashSet();
 
 
@@ -51,20 +48,21 @@ public class ClusterOutlierExtractor {
 
             readPoints(pointsFile,points);
             numClusters = readClusters(clusterFile,clusters);
-            means = new double[numClusters][3];
-            cutoffsFinal = new double[numClusters];
-            clusterSigmas = new double[numClusters];
+            HashMap<Integer, Double[]> meansmap = new HashMap<Integer, Double[]>();
+            HashMap<Integer, Double> cutoffsFinalmap = new HashMap<Integer, Double>();
+            HashMap<Integer, Double> clusterSigmasmap = new HashMap<Integer, Double>();
 
-            calculateMeans(points,clusters,means);
-            calculateSigmaValues(points, means, clusters, numPoints, numClusters, clusterSigmas);
+            calculateMeans(points,clusters,meansmap);
+            calculateSigmaValues(points, meansmap, clusters, numPoints, numClusters, clusterSigmasmap);
 
-            for (int i = 0; i < numClusters; i++) {
-                if(cutOffs.containsKey(i)){
-                    cutoffsFinal[i] = cutOffs.get(i);
-                }else{
-                    cutoffsFinal[i] = defaultCutOff;
-                }
-            }
+//            for (int i = 0; i < numClusters; i++) {
+//                if(cutOffs.containsKey(i)){
+//                    cutoffsFinalmap.put()
+//                    cutoffsFinal[i] = cutOffs.get(i);
+//                }else{
+//                    cutoffsFinal[i] = defaultCutOff;
+//                }
+//            }
 
             //genereate outlier cluster and write data to files
             for (int pointIndex = 0; pointIndex < numPoints; pointIndex++) {
@@ -74,11 +72,17 @@ public class ClusterOutlierExtractor {
                     dustPoints.add(pointIndex);
                     continue;
                 }
-                double cutOff = clusterSigmas[cluster] * cutoffsFinal[cluster];
+                double multiplier = defaultCutOff;
+                if(cutOffs.containsKey(cluster)){
+                    multiplier = cutOffs.get(cluster);
+                }
+                double cutOff = clusterSigmasmap.get(cluster) * multiplier;
 
-                double tmp0 = points[pointIndex][0] - means[cluster][0];
-                double tmp1 = points[pointIndex][1] - means[cluster][1];
-                double tmp2 = points[pointIndex][2] - means[cluster][2];
+
+
+                    double tmp0 = points[pointIndex][0] - meansmap.get(cluster)[0];
+                double tmp1 = points[pointIndex][1] - meansmap.get(cluster)[1];
+                double tmp2 = points[pointIndex][2] - meansmap.get(cluster)[2];
                 double distance =  Math.sqrt(tmp0 * tmp0 + tmp1 * tmp1 + tmp2 * tmp2);
 
                 if(distance > cutOff){
@@ -148,23 +152,27 @@ public class ClusterOutlierExtractor {
 
     }
 
-    private static void calculateSigmaValues(double[][] points, double[][] means, int[] clusters, int numPoints, int numClusters,double[] clusterSigmas) {
+    private static void calculateSigmaValues(double[][] points, HashMap<Integer, Double[]> means, int[] clusters, int numPoints, int numClusters, HashMap<Integer, Double> clusterSigmas) {
         // calculate sigma using ecludian distance for each group
-        int clustercounts[] = new int[numClusters];
+        HashMap<Integer, Integer> clusterCountsMap = new HashMap<Integer, Integer>();
+
 
         for (int pointIndex = 0; pointIndex < numPoints; pointIndex++) {
             int group = clusters[pointIndex];
-
-            double tmp0 = points[pointIndex][0] - means[group][0];
-            double tmp1 = points[pointIndex][1] - means[group][1];
-            double tmp2 = points[pointIndex][2] - means[group][2];
+            if(!clusterSigmas.containsKey(group)){
+                clusterSigmas.put(group,0.0);
+                clusterCountsMap.put(group,0);
+            }
+            double tmp0 = points[pointIndex][0] - means.get(group)[0];
+            double tmp1 = points[pointIndex][1] -  means.get(group)[1];
+            double tmp2 = points[pointIndex][2] -  means.get(group)[2];
             double distance =  Math.sqrt(tmp0 * tmp0 + tmp1 * tmp1 + tmp2 * tmp2);
-            clusterSigmas[group] += distance;
-            clustercounts[group]++;
+            clusterSigmas.put(group,clusterSigmas.get(group) + distance);
+            clusterCountsMap.put(group,clusterCountsMap.get(group) + 1);
         }
 
         for(int group = 0; group < numClusters; group++) {
-            clusterSigmas[group] /= clustercounts[group];
+            clusterSigmas.put(group,clusterSigmas.get(group)/ clusterCountsMap.get(group) );
            // double cutOff = clusterSigmas[group] * Program.config.DustClusterCutoffMultiplier;
             //System.out.println( "Cut Off Value for group " + group + " is  (" + FindGroupMDSCoG[group][0].Totalmean + "," + FindGroupMDSCoG[group][1].Totalmean + "," + FindGroupMDSCoG[group][2].Totalmean + ")");
             //System.out.println("Mean for group " + group + " is " + cutOff);
@@ -226,22 +234,26 @@ public class ClusterOutlierExtractor {
         return tempclustervount.size();
     }
 
-    public static void calculateMeans(double[][] points, int[] clusters, double[][] means){
-        int[] clusterCounts = new int[means.length];
+    public static void calculateMeans(double[][] points, int[] clusters, HashMap<Integer, Double[]> meansmap){
+        HashMap<Integer, Integer> clusterCountsMap = new HashMap<Integer, Integer>();
         for (int i = 0; i < points.length; i++) {
             double[] point = points[i];
             int cluster = clusters[i];
-            means[cluster][0] += point[0];
-            means[cluster][1] += point[1];
-            means[cluster][2] += point[2];
-            clusterCounts[cluster]++;
+            if(!meansmap.containsKey(cluster)){
+                meansmap.put(cluster,new Double[3]);
+                clusterCountsMap.put(cluster,0);
+            }
+            meansmap.get(cluster)[0] += point[0];
+            meansmap.get(cluster)[1] += point[1];
+            meansmap.get(cluster)[2] += point[2];
+            clusterCountsMap.put(cluster,clusterCountsMap.get(cluster) + 1);
         }
 
-        for (int i = 0; i < clusterCounts.length; i++) {
-            int clusterCount = clusterCounts[i];
-            means[i][0] /= clusterCount;
-            means[i][1] /= clusterCount;
-            means[i][2] /= clusterCount;
+        for (Integer key : meansmap.keySet()) {
+            int clusterCount = clusterCountsMap.get(key);
+            meansmap.get(key)[0] /= clusterCount;
+            meansmap.get(key)[1] /= clusterCount;
+            meansmap.get(key)[2] /= clusterCount;
         }
     }
 }

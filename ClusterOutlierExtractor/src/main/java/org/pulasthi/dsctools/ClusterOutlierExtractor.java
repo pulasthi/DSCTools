@@ -49,7 +49,6 @@ public class ClusterOutlierExtractor {
             readPoints(pointsFile,points);
             numClusters = readClusters(clusterFile,clusters);
             HashMap<Integer, Double[]> meansmap = new HashMap<Integer, Double[]>();
-            HashMap<Integer, Double> cutoffsFinalmap = new HashMap<Integer, Double>();
             HashMap<Integer, Double> clusterSigmasmap = new HashMap<Integer, Double>();
 
             calculateMeans(points,clusters,meansmap);
@@ -240,7 +239,8 @@ public class ClusterOutlierExtractor {
             double[] point = points[i];
             int cluster = clusters[i];
             if(!meansmap.containsKey(cluster)){
-                meansmap.put(cluster,new Double[3]);
+                Double[] temp = new Double[3];
+                meansmap.put(cluster,temp);
                 clusterCountsMap.put(cluster,0);
             }
             meansmap.get(cluster)[0] += point[0];
